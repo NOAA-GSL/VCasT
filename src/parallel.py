@@ -27,20 +27,22 @@ def process_date_multiprocessing(date, fcst_file, ref_file, fcst_var, ref_var, t
             raise Exception("Error: target_grid is unknown.")
 
         # Compute statistics
-        stats = []
+        stats = [date]
         for stat in [s.upper() for s in stat_name]:
             if 'RMSE' in stat:
-                result = compute_rmse(fcst_data, interpolated_data)
+                result = [compute_rmse(fcst_data, interpolated_data)]
             elif 'BIAS' in stat:
-                result = compute_bias(fcst_data, interpolated_data)
+                result = [compute_bias(fcst_data, interpolated_data)]
+            elif 'QUANTILES' in stat:
+                result = compute_quantiles(fcst_data, interpolated_data)
+            elif "MAE" in stat:
+                result = [compute_mae(fcst_data, interpolated_data)]
             else:
                 result = "NA"
                 print(f"{stat} not found.")
-            stats.append(result)
-
-        # Format the result as a string
-        row_string = f"{date};" + ";".join([str(f) for f in stats])
-        return row_string
+            stats += result
+        
+        return stats
     except Exception as e:
         return f"Error processing {date}: {e}"
 
@@ -54,7 +56,7 @@ def process_in_parallel(dates, fcst_files, ref_files, config):
     stat_name = config.stat_name
 
     # Use a Pool for parallel processing
-    with Pool(processes=5) as pool:  # Adjust number of processes to match your system capacity
+    with Pool(processes=config.processes) as pool:  # Adjust number of processes to match your system capacity
         # Use partial to pass constant arguments to the worker function
         worker_function = partial(
             process_date_multiprocessing,

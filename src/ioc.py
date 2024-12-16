@@ -4,6 +4,7 @@ import yaml
 import numpy as np
 import os
 from datetime import datetime
+import csv 
 
 class PrepIO:
     def __init__(self, config_file):
@@ -22,6 +23,7 @@ class PrepIO:
         self.output_filename = self.config['output_filename']
         self.stat_name = self.config.get('stat_name', [])
         self.target_grid = self.config['target_grid']
+        self.processes = self.config['processes']
         self.output_file = None        
 
 
@@ -40,17 +42,28 @@ class PrepIO:
         os.makedirs(self.output_dir, exist_ok=True)
         output_path = os.path.join(self.output_dir, self.output_filename)
         self.output_file = open(output_path, 'w')
+        self.writer = csv.writer(self.output_file)
 
-        header = "date;" + ';'.join(self.stat_name) 
+        header = ["DATE"]        
+        for i in self.stat_name:
+            if "RMSE" in i.upper():
+                header += ["RMSE"]
+            elif "BIAS" in i.upper():
+                header += ["BIAS"]
+            elif "QUANTILES" in i.upper():
+                header += ["25p","50p","75p","IQR","LW","UW"]
+            elif "MAE" in i.upper():
+                header += ["MAE"]
+          
         self.write_to_output_file(header)
 
-    def write_to_output_file(self, row_string):
+    def write_to_output_file(self, row):
         """
         Write a row string to the output file.
         """
         if self.output_file is None:
             raise ValueError("Output file is not open. Call open_output_file() first.")
-        self.output_file.write(row_string + '\n')
+        self.writer.writerow(row)
 
     def close_output_file(self):
         """

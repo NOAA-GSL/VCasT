@@ -1,0 +1,7 @@
+slurmstepd: error: *** JOB 3897829 ON h1c49 CANCELLED AT 2024-12-16T17:54:05 DUE TO TIME LIMIT ***
+slurmstepd: error: Detected 2 oom_kill events in StepId=3897829.batch. Some of the step tasks have been OOM Killed.
+_______________________________________________________________
+Start Epilog on node h1c49 for job 3897829 :: Mon Dec 16 17:54:07 UTC 2024
+Job 3897829 finished for user Vanderlei.Vargas in partition hera with exit code 0:0
+_______________________________________________________________
+End Epilogue Mon Dec 16 17:54:07 UTC 2024

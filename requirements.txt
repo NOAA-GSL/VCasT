@@ -1,0 +1,6 @@
+numpy
+pygrib
+netCDF4
+pyyaml
+scipy
+argparse

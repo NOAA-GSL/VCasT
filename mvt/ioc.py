@@ -17,6 +17,7 @@ class PrepIO:
         self.interval_hours = int(self.config['interval_hours'])
         self.fcst_file_template = self.config['fcst_file_template']
         self.fcst_var = self.config['fcst_var']
+        self.shift = self.config['shift']
         self.ref_file_template = self.config['ref_file_template']
         self.ref_var = self.config['ref_var']
         self.output_dir = self.config['output_dir']

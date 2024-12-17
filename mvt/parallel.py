@@ -1,9 +1,9 @@
 from multiprocessing import Pool
 from functools import partial
 from datetime import timedelta
-from src.interpolation import *
-from src.stats import *
-from src.ioc import *
+from mvt.interpolation import *
+from mvt.stats import *
+from mvt.ioc import *
 
 def process_date_multiprocessing(date, fcst_file, ref_file, fcst_var, ref_var, target_grid, stat_name):
     """
@@ -81,12 +81,14 @@ def dates_to_list(start_date_object, end_date_object,interval_hours):
     
     return dates
 
-def files_to_list(fcst_file_template, ref_file_template, dates):
+def files_to_list(fcst_file_template, ref_file_template, dates, shift):
     ffiles = []
     rfiles = []
     for current_datetime in dates:
+        fcst_current_datetime = current_datetime + timedelta(hours=shift)
+        fcycle = fcst_current_datetime.hour - fcst_current_datetime.hour%6
+        fcst_file = format_file_template(fcst_file_template, fcst_current_datetime, fcycle)
         cycle = current_datetime.hour - current_datetime.hour%6
-        fcst_file = format_file_template(fcst_file_template, current_datetime, cycle)
         ref_file = format_file_template(ref_file_template, current_datetime, cycle)
 
         ffiles.append(fcst_file)

@@ -3,8 +3,8 @@ from setuptools import setup, find_packages
 setup(
     name="mvt",  # Name of your project/package
     version="1.0.0",        # Version of your package
-    package_dir={"": "src"},  # Specify src as the root for packages
-    packages=find_packages(where="src"),  # Automatically discover packages in src/
+    package_dir={"": "mvt"},  # Specify src as the root for packages
+    packages=find_packages(where="mvt"),  # Automatically discover packages in src/
     description="A tool for calculating forecast statistics like RMSE and bias.",
     author="Vanderlei Vargas Jr.",
     author_email="vanderlei.vargas@noaa.gov",
@@ -24,7 +24,7 @@ setup(
     ],
     entry_points={
         "console_scripts": [
-            "mvt=src.main:main",  # Allows running `mvt` from the CLI
+            "mvt=mvt.main:main",  # Allows running `mvt` from the CLI
         ]
     },
 )

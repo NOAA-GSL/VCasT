@@ -35,7 +35,7 @@ def process_date_multiprocessing(date, fcst_file, ref_file, fcst_var, ref_var, i
  
         ustat_name = [s.upper() for s in stat_name]
 
-        if "GSS" in ustat_name:
+        if "GSS" in ustat_name or "FBIAS" in ustat_name:
             hits, misses, false_alarms, correct_rejections, total_events = compute_scores(fcst_data, ref_data, var_threshold, radius)
 
         if 'RMSE' in ustat_name:
@@ -48,7 +48,9 @@ def process_date_multiprocessing(date, fcst_file, ref_file, fcst_var, ref_var, i
             stats += [compute_mae(fcst_data, interpolated_data)]
         if "GSS" in ustat_name:
             stats += [compute_gss(hits, misses, false_alarms, total_events)]            
-        
+        if "FBIAS" in ustat_name:
+            stats += [calculate_fbias(hits, false_alarms, misses)]      
+
         return stats
     except Exception as e:
         return f"Error processing {date}: {e}"

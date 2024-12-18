@@ -23,8 +23,11 @@ class PrepIO:
         self.output_dir = self.config['output_dir']
         self.output_filename = self.config['output_filename']
         self.stat_name = self.config.get('stat_name', [])
+        self.interpolation = self.config['interpolation']
         self.target_grid = self.config['target_grid']
         self.processes = self.config['processes']
+        self.var_threshold = self.config['var_threshold']
+        self.var_radius = self.config['var_radius']
         self.output_file = None        
 
 

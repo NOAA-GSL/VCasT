@@ -5,7 +5,7 @@ from mvt.interpolation import *
 from mvt.stats import *
 from mvt.ioc import *
 
-def process_date_multiprocessing(date, fcst_file, ref_file, fcst_var, ref_var, target_grid, stat_name):
+def process_date_multiprocessing(date, fcst_file, ref_file, fcst_var, ref_var, interpolation, target_grid, stat_name, var_threshold, radius):
     """
     Function to process a single date entry. This will be executed in parallel using multiprocessing.
     """
@@ -21,26 +21,33 @@ def process_date_multiprocessing(date, fcst_file, ref_file, fcst_var, ref_var, t
             flons += 360.
 
         # Interpolate to target grid
-        if 'fcst' in target_grid:
-            interpolated_data = interpolate_to_target_grid(ref_data, rlats, rlons, flats, flons)
+
+        if interpolation:
+            if 'fcst' in target_grid:
+                interpolated_data = interpolate_to_target_grid(ref_data, rlats, rlons, flats, flons)            
+            else:
+                raise Exception("Error: target_grid is unknown.")
         else:
-            raise Exception("Error: target_grid is unknown.")
+            interpolated_data = ref_data
 
         # Compute statistics
         stats = [date]
-        for stat in [s.upper() for s in stat_name]:
-            if 'RMSE' in stat:
-                result = [compute_rmse(fcst_data, interpolated_data)]
-            elif 'BIAS' in stat:
-                result = [compute_bias(fcst_data, interpolated_data)]
-            elif 'QUANTILES' in stat:
-                result = compute_quantiles(fcst_data, interpolated_data)
-            elif "MAE" in stat:
-                result = [compute_mae(fcst_data, interpolated_data)]
-            else:
-                result = "NA"
-                print(f"{stat} not found.")
-            stats += result
+ 
+        ustat_name = [s.upper() for s in stat_name]
+
+        if "GSS" in ustat_name:
+            hits, misses, false_alarms, correct_rejections, total_events = compute_scores(fcst_data, ref_data, var_threshold, radius)
+
+        if 'RMSE' in ustat_name:
+            stats += [compute_rmse(fcst_data, interpolated_data)]
+        if 'BIAS' in ustat_name:
+            stats += [compute_bias(fcst_data, interpolated_data)]
+        if 'QUANTILES' in ustat_name:
+            stats += compute_quantiles(fcst_data, interpolated_data)
+        if "MAE" in ustat_name:
+            stats += [compute_mae(fcst_data, interpolated_data)]
+        if "GSS" in ustat_name:
+            stats += [compute_gss(hits, misses, false_alarms, total_events)]            
         
         return stats
     except Exception as e:
@@ -52,8 +59,11 @@ def process_in_parallel(dates, fcst_files, ref_files, config):
     """
     fcst_var = config.fcst_var
     ref_var = config.ref_var
+    interpolation = config.interpolation
     target_grid = config.target_grid
     stat_name = config.stat_name
+    var_threshold = config.var_threshold
+    radius = config.var_radius
 
     # Use a Pool for parallel processing
     with Pool(processes=config.processes) as pool:  # Adjust number of processes to match your system capacity
@@ -62,8 +72,11 @@ def process_in_parallel(dates, fcst_files, ref_files, config):
             process_date_multiprocessing,
             fcst_var=fcst_var,
             ref_var=ref_var,
+            interpolation=interpolation,
             target_grid=target_grid,
-            stat_name=stat_name
+            stat_name=stat_name,
+            var_threshold = var_threshold,
+            radius = radius
         )
 
         # Map input data to the worker function

@@ -104,3 +104,93 @@ def compute_quantiles(forecast_values, reference_values):
 def compute_mae(forecast_values, reference_values):
     return np.mean(np.abs(forecast_values - reference_values))
 
+def compute_scores(fcst_data, ref_data, var_threshold, radius=None):
+    """
+    Calculate hits, misses, false alarms, and correct rejections based on forecast and reference data.
+    Handles both local grid point comparisons and grid radius of influence.
+
+    Parameters:
+    fcst_data (np.ndarray): Forecasted values as a 2D grid (n, m).
+    ref_data (np.ndarray): Reference values as a 2D grid (n, m).
+    var_threshold (float): Threshold above which events are considered significant.
+    radius (int, optional): If None, only local grid points are considered. Otherwise, radius is the
+                            number of grid points to consider around each grid point of interest.
+
+    Returns:
+    tuple: (hits, misses, false_alarms, correct_rejections, total_events)
+    """
+    # Ensure forecast and reference grids are the same shape
+    if fcst_data.shape != ref_data.shape:
+        raise ValueError("Forecast and reference grids must have the same shape.")
+    
+    # Logical masks for significant events
+    fcst_mask = fcst_data >= var_threshold
+    ref_mask = ref_data >= var_threshold
+
+    if radius is None:
+        # Local grid point calculation
+        hits = np.sum(fcst_mask & ref_mask)                   # Both forecast and reference detect an event
+        misses = np.sum(~fcst_mask & ref_mask)                # Reference detects an event, forecast does not
+        false_alarms = np.sum(fcst_mask & ~ref_mask)          # Forecast detects an event, reference does not
+        correct_rejections = np.sum(~fcst_mask & ~ref_mask)   # Neither detect an event
+    else:
+        # Radius of influence calculation
+        n, m = fcst_data.shape
+        hits = 0
+        misses = 0
+        false_alarms = 0
+        correct_rejections = 0
+
+        # Iterate through each grid point
+        for i in range(n):
+            for j in range(m):
+                # Define the neighborhood bounds (clipping at grid edges)
+                i_min = max(0, i - radius)
+                i_max = min(n, i + radius + 1)
+                j_min = max(0, j - radius)
+                j_max = min(m, j + radius + 1)
+
+                # Extract the neighborhood masks
+                fcst_neighborhood = fcst_mask[i_min:i_max, j_min:j_max]
+                ref_neighborhood = ref_mask[i_min:i_max, j_min:j_max]
+
+                # Check for hits, misses, false alarms, or correct rejections
+                if ref_mask[i, j]:  # Reference event exists at this point
+                    if np.any(fcst_neighborhood):  # Any forecast in the neighborhood
+                        hits += 1
+                    else:
+                        misses += 1
+                else:  # No reference event at this point
+                    if np.any(fcst_neighborhood):  # Forecast in the neighborhood but no reference
+                        false_alarms += 1
+                    else:
+                        correct_rejections += 1
+
+    # Total events
+    total_events = hits + misses + false_alarms + correct_rejections
+
+    return hits, misses, false_alarms, correct_rejections, total_events
+
+def compute_gss(hits, misses, false_alarms, total_events):
+    """
+    Calculate the Gilbert Skill Score (GSS) using the input scores.
+
+    Parameters:
+    hits (int): Number of correctly forecast events.
+    misses (int): Number of events that occurred but were not forecast.
+    false_alarms (int): Number of forecast events that did not occur.
+    total_events (int): Total number of events (hits + misses + false alarms + correct rejections).
+
+    Returns:
+    float: The Gilbert Skill Score (GSS).
+    """
+    # Calculate expected hits due to random chance
+    expected_hits = ((hits + false_alarms) * (hits + misses)) / total_events
+
+    # Calculate GSS
+    if (hits + misses + false_alarms - expected_hits) != 0:
+        gss = (hits - expected_hits) / (hits + misses + false_alarms - expected_hits)
+    else:
+        gss = 0.0  # Avoid division by zero
+    
+    return gss

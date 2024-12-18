@@ -16,7 +16,7 @@ ref_var: "t"                                  # Reference variable name
 output_dir: "/path/to/output_dir"             # Directory to save output
 output_filename: "output_file.txt"            # Output file template
 
-# Statistical Metrics (rmse, bias, quantiles, mae, gss)
+# Statistical Metrics (rmse, bias, quantiles, mae, gss, fbias)
 stat_name:                                    
 - "rmse"
 - "bias"
@@ -26,7 +26,7 @@ stat_name:
 
 # Variable Threshold and Radius
 var_threshold: 10                  # Threshold value for analysis
-var_radius: 10                     # Influence radius for calculations
+var_radius: 10                     # Influence radius for calculations (0 - None)
 
 # Grid and Interpolation Settings
 interpolation: false               # Whether to interpolate data

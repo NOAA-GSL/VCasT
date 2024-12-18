@@ -28,8 +28,31 @@ class PrepIO:
         self.processes = self.config['processes']
         self.var_threshold = self.config['var_threshold']
         self.var_radius = self.config['var_radius']
-        self.output_file = None        
+        self.output_file = None      
 
+        self.print_options()  
+    
+    def print_options(self):
+        """
+        Print the configuration options in a nicely formatted way.
+        """
+        print("Configuration Options:")
+        print(f"  Start Date: {self.start_date}")
+        print(f"  End Date: {self.end_date}")
+        print(f"  Interval Hours: {self.interval_hours}")
+        print(f"  Forecast File Template: {self.fcst_file_template}")
+        print(f"  Forecast Variable: {self.fcst_var}")
+        print(f"  Shift: {self.shift}")
+        print(f"  Reference File Template: {self.ref_file_template}")
+        print(f"  Reference Variable: {self.ref_var}")
+        print(f"  Output Directory: {self.output_dir}")
+        print(f"  Output Filename: {self.output_filename}")
+        print(f"  Statistical Metrics: {', '.join(self.stat_name)}")
+        print(f"  Interpolation: {self.interpolation}")
+        print(f"  Target Grid: {self.target_grid}")
+        print(f"  Processes: {self.processes}")
+        print(f"  Variable Threshold: {self.var_threshold}")
+        print(f"  Variable Radius: {self.var_radius}")
 
     @staticmethod
     def read_config_file(config_file):
@@ -48,17 +71,22 @@ class PrepIO:
         self.output_file = open(output_path, 'w')
         self.writer = csv.writer(self.output_file)
 
-        header = ["DATE"]        
-        for i in self.stat_name:
-            if "RMSE" in i.upper():
-                header += ["RMSE"]
-            elif "BIAS" in i.upper():
-                header += ["BIAS"]
-            elif "QUANTILES" in i.upper():
-                header += ["25p","50p","75p","IQR","LW","UW"]
-            elif "MAE" in i.upper():
-                header += ["MAE"]
-          
+        header = ["DATE"] 
+        ustat_name = [s.upper() for s in self.stat_name]
+
+        if "RMSE" in ustat_name:
+            header += ["RMSE"]
+        if "BIAS" in ustat_name:
+            header += ["BIAS"]
+        if "QUANTILES" in ustat_name:
+            header += ["25p","50p","75p","IQR","LW","UW"]
+        if "MAE" in ustat_name:
+            header += ["MAE"]
+        if "GSS" in ustat_name:
+            header += ["GSS"]
+        if "FBIAS" in ustat_name:
+            header += ["FBIAS"]
+
         self.write_to_output_file(header)
 
     def write_to_output_file(self, row):

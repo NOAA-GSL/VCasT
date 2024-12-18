@@ -127,7 +127,7 @@ def compute_scores(fcst_data, ref_data, var_threshold, radius=None):
     fcst_mask = fcst_data >= var_threshold
     ref_mask = ref_data >= var_threshold
 
-    if radius is None:
+    if radius == 0:
         # Local grid point calculation
         hits = np.sum(fcst_mask & ref_mask)                   # Both forecast and reference detect an event
         misses = np.sum(~fcst_mask & ref_mask)                # Reference detects an event, forecast does not
@@ -194,3 +194,31 @@ def compute_gss(hits, misses, false_alarms, total_events):
         gss = 0.0  # Avoid division by zero
     
     return gss
+
+def calculate_fbias(hits, false_alarms, misses):
+    """
+    Calculate the Frequency Bias Index (FBIAS).
+
+    Parameters:
+    - hits (int): Number of correctly forecasted events.
+    - false_alarms (int): Number of forecasted events that did not occur.
+    - misses (int): Number of events that occurred but were not forecasted.
+
+    Returns:
+    - float: Frequency Bias Index (FBIAS).
+
+    Raises:
+    - ValueError: If there are no observed events (hits + misses = 0).
+    """
+    # Denominator: Total observed events
+    observed_events = hits + misses
+    if observed_events == 0:
+        raise ValueError("FBIAS cannot be calculated because there are no observed events.")
+
+    # Numerator: Total forecasted events
+    forecasted_events = hits + false_alarms
+
+    # Calculate FBIAS
+    fbias = forecasted_events / observed_events
+
+    return fbias

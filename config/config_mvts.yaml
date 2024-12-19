@@ -6,7 +6,7 @@ interval_hours: "1"                # Interval in hours for processing (e.g., 1, 
 # Forecast Configuration
 fcst_file_template: "/path/to/forecast/forecast_{year}-{month}-{day}T{hour}:00:00.nc"  # Forecast file template (netcdf or grib2)
 fcst_var: "T2M"                               # Forecast variable name
-shift: -1
+shift: -1                                     # Time shift (if any)
 
 # Reference Configuration
 ref_file_template: "/path/to/reference/obs_{year}{month}{day}/{cycle}/hrrr.t{hour}z.wrfprsf00.grib2" # Reference file template (netcdf or grib2)

@@ -14,7 +14,10 @@ setup(
         "pygrib",
         "netCDF4",
         "pyyaml",
-        "scipy"
+        "scipy",
+        "argparse",
+        "pandas",
+        "matplotlib",
     ],
     python_requires=">=3.6",  # Specify compatible Python versions
     classifiers=[
@@ -24,7 +27,8 @@ setup(
     ],
     entry_points={
         "console_scripts": [
-            "mvt=mvt.main:main",  # Allows running `mvt` from the CLI
+            "mvts=mvt.main:main",  # Allows running `mvt` from the CLI
+            "mvtp=mvt.main_plot:main_plot",
         ]
     },
 )

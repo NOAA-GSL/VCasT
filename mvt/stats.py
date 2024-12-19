@@ -102,7 +102,21 @@ def compute_quantiles(forecast_values, reference_values):
     return quantile_results
 
 def compute_mae(forecast_values, reference_values):
+    """
+    Compute Mean Absolute Error (MAE) between forecast and reference values.
+
+    Parameters:
+    - forecast_values (numpy.ndarray): Array of forecasted values.
+    - reference_values (numpy.ndarray): Array of observed/reference values.
+
+    Returns:
+    - float: The Mean Absolute Error (MAE), which is the average of the absolute differences 
+             between forecasted and observed values.
+    """
+
+    # Calculate the absolute differences and compute their mean
     return np.mean(np.abs(forecast_values - reference_values))
+
 
 def compute_scores(fcst_data, ref_data, var_threshold, radius=None):
     """
@@ -213,7 +227,7 @@ def calculate_fbias(hits, false_alarms, misses):
     # Denominator: Total observed events
     observed_events = hits + misses
     if observed_events == 0:
-        raise ValueError("FBIAS cannot be calculated because there are no observed events.")
+        return np.nan
 
     # Numerator: Total forecasted events
     forecasted_events = hits + false_alarms
@@ -222,3 +236,85 @@ def calculate_fbias(hits, false_alarms, misses):
     fbias = forecasted_events / observed_events
 
     return fbias
+
+def compute_pod(hits, misses):
+    """
+    Compute Probability of Detection (POD).
+
+    Parameters:
+    - hits (int): Number of correctly forecasted events.
+    - misses (int): Number of observed events that were missed.
+
+    Returns:
+    - float: Probability of Detection (POD).
+
+    Raises:
+    - ValueError: If there are no observed events (hits + misses = 0).
+    """
+    observed_events = hits + misses
+    if observed_events == 0:
+        return np.nan
+
+    pod = hits / observed_events
+    return pod
+
+
+def compute_far(hits, false_alarms):
+    """
+    Compute False Alarm Ratio (FAR).
+
+    Parameters:
+    - hits (int): Number of correctly forecasted events.
+    - false_alarms (int): Number of forecasted events that did not occur.
+
+    Returns:
+    - float: False Alarm Ratio (FAR).
+
+    Raises:
+    - ValueError: If there are no forecasted events (hits + false_alarms = 0).
+    """
+    forecasted_events = hits + false_alarms
+    if forecasted_events == 0:
+        return np.nan
+
+    far = false_alarms / forecasted_events
+    return far
+
+def compute_success_ratio(hits, false_alarms):
+    """
+    Compute the Success Ratio (SR), also known as Precision.
+
+    Parameters:
+    - hits (int): Number of correctly forecasted events.
+    - false_alarms (int): Number of forecasted events that did not occur.
+
+    Returns:
+    - float: Success Ratio (SR).
+    """
+    # Compute Success Ratio
+    sr = 1 - compute_far(hits, false_alarms)
+
+    return sr
+
+def compute_csi(hits, misses, false_alarms):
+    """
+    Compute the Critical Success Index (CSI), also known as the Threat Score.
+
+    Parameters:
+    - hits (int): Number of correctly forecasted events.
+    - misses (int): Number of observed events that were not forecasted.
+    - false_alarms (int): Number of forecasted events that did not occur.
+
+    Returns:
+    - float: Critical Success Index (CSI).
+
+    Raises:
+    - ValueError: If there are no forecasted or observed events (hits + misses + false_alarms = 0).
+    """
+    total_events = hits + misses + false_alarms
+    if total_events == 0:
+        return np.nan
+
+    # Compute CSI
+    csi = hits / total_events
+    return csi

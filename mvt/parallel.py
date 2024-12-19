@@ -21,22 +21,23 @@ def process_date_multiprocessing(date, fcst_file, ref_file, fcst_var, ref_var, i
             flons += 360.
 
         # Interpolate to target grid
-
-        if interpolation:
+        
+        if interpolation:            
             if 'fcst' in target_grid:
-                interpolated_data = interpolate_to_target_grid(ref_data, rlats, rlons, flats, flons)            
+                interpolated_data = interpolate_to_target_grid(ref_data, rlats, rlons, flats, flons) 
             else:
                 raise Exception("Error: target_grid is unknown.")
         else:
             interpolated_data = ref_data
 
         # Compute statistics
-        stats = [date]
+        stats = [date]        
  
         ustat_name = [s.upper() for s in stat_name]
 
-        if "GSS" in ustat_name or "FBIAS" in ustat_name:
-            hits, misses, false_alarms, correct_rejections, total_events = compute_scores(fcst_data, ref_data, var_threshold, radius)
+        if "GSS" in ustat_name or "FBIAS" in ustat_name or "POD" in ustat_name or "FAR" in ustat_name or "CSI" in ustat_name or "SR" in ustat_name:
+            # Compute scores if any of these metrics are requested
+            hits, misses, false_alarms, correct_rejections, total_events = compute_scores(fcst_data, interpolated_data, var_threshold, radius)
 
         if 'RMSE' in ustat_name:
             stats += [compute_rmse(fcst_data, interpolated_data)]
@@ -47,13 +48,22 @@ def process_date_multiprocessing(date, fcst_file, ref_file, fcst_var, ref_var, i
         if "MAE" in ustat_name:
             stats += [compute_mae(fcst_data, interpolated_data)]
         if "GSS" in ustat_name:
-            stats += [compute_gss(hits, misses, false_alarms, total_events)]            
+            stats += [compute_gss(hits, misses, false_alarms, total_events)]
         if "FBIAS" in ustat_name:
-            stats += [calculate_fbias(hits, false_alarms, misses)]      
+            stats += [calculate_fbias(hits, false_alarms, misses)]
+        if "POD" in ustat_name:
+            stats += [compute_pod(hits, misses)]
+        if "FAR" in ustat_name:
+            stats += [compute_far(hits, false_alarms)]
+        if "CSI" in ustat_name:
+            stats += [compute_csi(hits, misses, false_alarms)]
+        if "SR" in ustat_name:
+            stats += [compute_success_ratio(hits, false_alarms)]
+   
 
         return stats
     except Exception as e:
-        return f"Error processing {date}: {e}"
+        raise Exception(f"Error processing {date}: {e}")
 
 def process_in_parallel(dates, fcst_files, ref_files, config):
     """

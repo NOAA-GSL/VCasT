@@ -1,12 +1,17 @@
 from mvt.ioc import *
 from mvt.parallel import *
 import argparse
+import time
 
 def main():
 
     parser = argparse.ArgumentParser(description="")
     parser.add_argument('config_file', type=str, help="Path to YAML file")
     args = parser.parse_args()
+
+    start_time = time.time()
+  
+    print_intro()
 
     config = PrepIO(args.config_file)
 
@@ -18,6 +23,8 @@ def main():
     process_in_parallel(dates, fcst_files, ref_files, config)
 
     config.close_output_file()
+
+    print_conclusion(start_time)
 
 if __name__ == '__main__':
     main()

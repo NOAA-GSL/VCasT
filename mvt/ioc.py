@@ -5,12 +5,46 @@ import numpy as np
 import os
 from datetime import datetime
 import csv 
+import time
+
+def print_intro():
+    """
+    Print an introduction to the Model Verification Tool (MVT).
+    """
+    print()
+    print("=" * 60)
+    print("Model Verification Tool (MVT)")
+    print()
+    print("Starting the Model Verification Tool (MVT)...")
+    print("=" * 60)
+    print()
+
+def print_conclusion(start_time):
+    """
+    Print a conclusion message and show the time spent.
+
+    Parameters:
+    - start_time (float): The starting time of the script (use `time.time()`).
+    """
+    # Calculate the elapsed time
+    elapsed_time = time.time() - start_time
+    minutes, seconds = divmod(elapsed_time, 60)
+    
+    print()
+    print("=" * 60)
+    print("Execution Complete: Model Verification Tool (MVT)")
+    print()
+    print(f"Total Time Spent: {int(minutes)} minutes and {seconds:.2f} seconds.")
+    print("=" * 60)
+
 
 class PrepIO:
     def __init__(self, config_file):
         """
         Initialize the class with the configuration file.
         """
+        self.available_vars = ["RMSE","BIAS","QUANTILES","MAE","GSS","FBIAS","POD","FAR","SR","CSI"]
+
         self.config = self.read_config_file(config_file)
         self.start_date = datetime.strptime(self.config['start_date'], "%Y-%m-%d_%H:%M:%S")
         self.end_date = datetime.strptime(self.config['end_date'], "%Y-%m-%d_%H:%M:%S")
@@ -72,20 +106,13 @@ class PrepIO:
         self.writer = csv.writer(self.output_file)
 
         header = ["DATE"] 
-        ustat_name = [s.upper() for s in self.stat_name]
 
-        if "RMSE" in ustat_name:
-            header += ["RMSE"]
-        if "BIAS" in ustat_name:
-            header += ["BIAS"]
-        if "QUANTILES" in ustat_name:
-            header += ["25p","50p","75p","IQR","LW","UW"]
-        if "MAE" in ustat_name:
-            header += ["MAE"]
-        if "GSS" in ustat_name:
-            header += ["GSS"]
-        if "FBIAS" in ustat_name:
-            header += ["FBIAS"]
+        for i in self.stat_name:
+            if i.upper() in self.available_vars:
+                if i.upper() in "QUANTILES":
+                    header += ["25p","50p","75p","IQR","LW","UW"]
+                else:
+                    header += [i.upper()]
 
         self.write_to_output_file(header)
 

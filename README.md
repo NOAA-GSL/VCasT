@@ -69,6 +69,9 @@ mvt_plot config/config_plot.yaml
 
 This command generates visualizations like Taylor and Performance Diagrams.
 
+![Performance Diagram](https://raw.githubusercontent.com/VanderleiVargas-NOAA/ModelVerificationTool/develop/tests/examples/pd_refc.png "Performance Diagram Example")
+
+
 ---
 
 ## Configuration

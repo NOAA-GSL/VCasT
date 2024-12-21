@@ -31,7 +31,7 @@ def process_date_multiprocessing(date, fcst_file, ref_file, fcst_var, ref_var, i
             interpolated_data = ref_data
 
         # Compute statistics
-        stats = [date]        
+        stats = [date]
  
         ustat_name = [s.upper() for s in stat_name]
 
@@ -47,6 +47,10 @@ def process_date_multiprocessing(date, fcst_file, ref_file, fcst_var, ref_var, i
             stats += compute_quantiles(fcst_data, interpolated_data)
         if "MAE" in ustat_name:
             stats += [compute_mae(fcst_data, interpolated_data)]
+        if "CORR" in ustat_name:
+            stats += [compute_correlation(fcst_data, interpolated_data)]
+        if "STDEV" in ustat_name:
+            stats += [compute_stdev(fcst_data, interpolated_data)]
         if "GSS" in ustat_name:
             stats += [compute_gss(hits, misses, false_alarms, total_events)]
         if "FBIAS" in ustat_name:

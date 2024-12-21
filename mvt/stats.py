@@ -318,3 +318,57 @@ def compute_csi(hits, misses, false_alarms):
     # Compute CSI
     csi = hits / total_events
     return csi
+
+def compute_correlation(forecast_values, reference_values):
+    """
+    Compute the Pearson correlation coefficient between forecast and reference values.
+
+    Parameters:
+    forecast_values (np.ndarray): Forecasted values of shape (n, m) or (n,).
+    reference_values (np.ndarray): Reference values of shape (n, m) or (n,).
+
+    Returns:
+    float: Pearson correlation coefficient between forecast and reference values.
+
+    Raises:
+    ValueError: If the shapes of the inputs do not match.
+    """
+    # Ensure the inputs are numpy arrays
+    forecast_values = np.asarray(forecast_values)
+    reference_values = np.asarray(reference_values)
+
+    # Check if the shapes match
+    if forecast_values.shape != reference_values.shape:
+        raise ValueError("Forecast values and reference values must have the same shape.")
+
+    # Flatten the arrays in case they are 2D
+    forecast_values = forecast_values.ravel()
+    reference_values = reference_values.ravel()
+
+    # Compute and return the Pearson correlation coefficient
+    return np.corrcoef(forecast_values, reference_values)[0, 1]
+
+def compute_stdev(forecast_values, reference_values):
+    """
+    Compute the standard deviation of forecast values relative to the reference values.
+
+    Parameters:
+    forecast_values (np.ndarray): Forecasted values of shape (n, m) or (n,).
+    reference_values (np.ndarray): Reference values of shape (n, m) or (n,).
+
+    Returns:
+    float: Standard deviation of the forecast values.
+
+    Raises:
+    ValueError: If the shapes of the inputs do not match.
+    """
+    # Ensure the inputs are numpy arrays
+    forecast_values = np.asarray(forecast_values)
+    reference_values = np.asarray(reference_values)
+
+    # Check if the shapes match
+    if forecast_values.shape != reference_values.shape:
+        raise ValueError("Forecast values and reference values must have the same shape.")
+
+    # Compute and return the standard deviation of forecast values
+    return np.std(forecast_values)

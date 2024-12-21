@@ -63,6 +63,10 @@ class PrepIO:
         self.var_threshold = self.config['var_threshold']
         self.var_radius = self.config['var_radius']
         self.output_file = None      
+        self.fcst_type_of_level = self.config["fcst_type_of_level"]
+        self.fcst_level = self.config["fcst_level"]
+        self.ref_type_of_level = self.config["ref_type_of_level"]
+        self.ref_level = self.config["ref_level"]
 
         self.print_options()  
     
@@ -183,13 +187,13 @@ def identify_file_type(file_path):
 
     return 'unknown'
 
-def read_input_data(input_file, var_name):
+def read_input_data(input_file, var_name, type_of_level, level):
     
     if 'netcdf' in identify_file_type(input_file):
-        data, lats, lons = read_netcdf(input_file,var_name)    
+        data, lats, lons = read_netcdf(input_file, var_name, type_of_level, level)   
         stype = 'netcdf'
     elif 'grib2' in identify_file_type(input_file):
-        data, lats, lons = read_grib2(input_file,var_name)
+        data, lats, lons = read_grib2(input_file,var_name, type_of_level, level)
         stype = 'grib2'
     else:
         raise Exception("Error: File format unknown.")
@@ -197,31 +201,32 @@ def read_input_data(input_file, var_name):
     data = np.squeeze(data)
     return data, lats, lons, stype
 
-def read_grib2(grib2_file, var_name):
+
+def read_grib2(grib2_file, var_name, type_of_level, level):
     """
     Reads a GRIB2 file and extracts the specified variable data along with latitude and longitude arrays.
-    Specifically filters for `TMP` at `surface` level and `anl` type.
+    Requires filtering by type of level and level.
 
     Parameters:
     - grib2_file (str): Path to the GRIB2 file.
     - var_name (str): Name of the variable to extract (e.g., "TMP").
+    - type_of_level (str): Type of level to filter (e.g., "surface", "isobaricInhPa").
+    - level (int): Specific level to filter (e.g., 10 for 10 m above ground).
 
     Returns:
     - data (numpy.ndarray): Variable data array.
     - lats (numpy.ndarray): Latitude array.
     - lons (numpy.ndarray): Longitude array.
+
+    Raises:
+    - ValueError: If the specified variable or level is not found.
     """
     try:
         # Open the GRIB2 file
         grbs = pygrib.open(grib2_file)
 
-        # Filter the GRIB message for the specified variable, level, and type
-        grb = None
-        if var_name == "t":
-            grb = grbs.select(shortName=var_name, level=0)[0]
-        else:
-            # Default to selecting by shortName only for other variables
-            grb = grbs.select(shortName=var_name)[0]
+        # Filter the GRIB message based on var_name, type_of_level, and level
+        grb = grbs.select(shortName=var_name, typeOfLevel=type_of_level, level=level)[0]
 
         # Extract the data, latitude, and longitude
         data = grb.values
@@ -229,57 +234,81 @@ def read_grib2(grib2_file, var_name):
 
         grbs.close()
         return data, lats, lons
-    except Exception as e:
-        print(f"Error reading GRIB2 file with pygrib: {e}")
-        return None, None, None
 
-def read_netcdf(netcdf_file, var_name):
+    except (IndexError, ValueError) as e:
+        raise ValueError(f"Variable '{var_name}' with type_of_level '{type_of_level}' and level {level} not found in the file.") from e
+    except Exception as e:
+        raise RuntimeError(f"Error reading GRIB2 file '{grib2_file}': {e}") from e
+
+def read_netcdf(netcdf_file, var_name, type_of_level, level):
     """
     Reads a NetCDF file and extracts the specified variable data along with latitude and longitude arrays.
+    Handles cases where the type_of_level dimension is absent for surface fields.
 
     Parameters:
     - netcdf_file (str): Path to the NetCDF file.
     - var_name (str): Name of the variable to extract.
+    - type_of_level (str, optional): Name of the dimension (e.g., 'level').
+    - level (int or float, optional): Specific level value to extract (if applicable).
 
     Returns:
     - data (numpy.ndarray): Variable data array.
     - lats (numpy.ndarray): Latitude array.
     - lons (numpy.ndarray): Longitude array.
+
+    Raises:
+    - ValueError: If the variable or necessary coordinates are not found.
     """
     try:
         # Open the NetCDF file
         nc = Dataset(netcdf_file, mode='r')
-        
-        # Extract the variable data
-        if var_name not in nc.variables:
-            print(f"Variable '{var_name}' not found in NetCDF file.")
-            print(f"Available variables: {list(nc.variables.keys())}")
-            return None, None, None
 
-        data = nc.variables[var_name][:]  # Extract the variable's data array
-        
+        # Check if the variable exists
+        if var_name not in nc.variables:
+            raise ValueError(f"Variable '{var_name}' not found in NetCDF file. Available variables: {list(nc.variables.keys())}")
+
         # Extract latitude and longitude arrays
         if 'latitude' in nc.variables:
             lats = nc.variables['latitude'][:]
         elif 'lat' in nc.variables:
             lats = nc.variables['lat'][:]
         else:
-            print("Latitude variable not found in NetCDF file.")
-            return None, None, None
-        
+            raise ValueError("Latitude variable not found in NetCDF file.")
+
         if 'longitude' in nc.variables:
             lons = nc.variables['longitude'][:]
         elif 'lon' in nc.variables:
             lons = nc.variables['lon'][:]
         else:
-            print("Longitude variable not found in NetCDF file.")
-            return None, None, None
-        
+            raise ValueError("Longitude variable not found in NetCDF file.")
+
+        # Get the dimensions of the variable
+        variable_dimensions = nc.variables[var_name].dimensions
+
+        has_dimension = type_of_level in variable_dimensions
+
+        if has_dimension:
+            # Check if type_of_level is specified and exists in the NetCDF file
+            if type_of_level and type_of_level in nc.variables:
+                level_array = nc.variables[type_of_level][:]
+                if level is not None:
+                    # Find the index of the specified level
+                    level_index = np.where(level_array == level)[0]
+                    if level_index.size == 0:
+                        raise ValueError(f"Level '{level}' not found in dimension '{type_of_level}'. Available levels: {level_array}")
+    
+                    # Extract data at the specified level
+                    data = nc.variables[var_name][level_index[0], ...]
+                else:
+                    raise ValueError("Level must be specified for non-surface fields.")
+        else:
+            # Assume surface field (no level dimension)
+            data = nc.variables[var_name][...]
+
         # Close the NetCDF file
         nc.close()
-        
+
         return data, lats, lons
 
     except Exception as e:
-        print(f"Error reading NetCDF file: {e}")
-        return None, None, None
+        raise RuntimeError(f"Error reading NetCDF file '{netcdf_file}': {e}") from e

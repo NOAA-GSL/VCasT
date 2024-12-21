@@ -5,14 +5,15 @@ from mvt.interpolation import *
 from mvt.stats import *
 from mvt.ioc import *
 
-def process_date_multiprocessing(date, fcst_file, ref_file, fcst_var, ref_var, interpolation, target_grid, stat_name, var_threshold, radius):
+def process_date_multiprocessing(date, fcst_file, ref_file, fcst_var, ref_var, interpolation, target_grid, stat_name, 
+                                 var_threshold, radius, fcst_type_of_level, fcst_level, ref_type_of_level, ref_level):
     """
     Function to process a single date entry. This will be executed in parallel using multiprocessing.
     """
     try:
         # Read forecast and reference data
-        fcst_data, flats, flons, ftype = read_input_data(fcst_file, fcst_var)
-        ref_data, rlats, rlons, rtype = read_input_data(ref_file, ref_var)
+        fcst_data, flats, flons, ftype = read_input_data(fcst_file, fcst_var, fcst_type_of_level, fcst_level)
+        ref_data, rlats, rlons, rtype = read_input_data(ref_file, ref_var, ref_type_of_level, ref_level)
 
         # Adjust longitudes if needed
         if 'grib2' in rtype:
@@ -80,6 +81,10 @@ def process_in_parallel(dates, fcst_files, ref_files, config):
     stat_name = config.stat_name
     var_threshold = config.var_threshold
     radius = config.var_radius
+    fcst_type_of_level = config.fcst_type_of_level 
+    fcst_level = config.fcst_level 
+    ref_type_of_level = config.ref_type_of_level
+    ref_level = config.ref_level
 
     # Use a Pool for parallel processing
     with Pool(processes=config.processes) as pool:  # Adjust number of processes to match your system capacity
@@ -92,7 +97,11 @@ def process_in_parallel(dates, fcst_files, ref_files, config):
             target_grid=target_grid,
             stat_name=stat_name,
             var_threshold = var_threshold,
-            radius = radius
+            radius = radius,
+            fcst_type_of_level = fcst_type_of_level, 
+            fcst_level = fcst_level, 
+            ref_type_of_level = ref_type_of_level, 
+            ref_level = ref_level
         )
 
         # Map input data to the worker function

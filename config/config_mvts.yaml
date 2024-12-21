@@ -1,36 +1,57 @@
+# ------------------------------
 # Date and Time Settings
+# ------------------------------
 start_date: "2024-04-01_02:00:00"  # Start date of the data processing
 end_date: "2024-04-07_17:00:00"    # End date of the data processing
 interval_hours: "1"                # Interval in hours for processing (e.g., 1, 6)
 
+# ------------------------------
 # Forecast Configuration
-fcst_file_template: "/path/to/forecast/forecast_{year}-{month}-{day}T{hour}:00:00.nc"  # Forecast file template (netcdf or grib2)
-fcst_var: "T2M"                               # Forecast variable name
-shift: -1                                     # Time shift (if any)
+# ------------------------------
+fcst_file_template: "/path/to/forecast/forecast_{year}-{month}-{day}T{hour}:00:00.nc"  # Forecast file template (NetCDF or GRIB2)
+fcst_var: "WIND"                    # Forecast variable name
+fcst_level: 1000                    # Level for forecast variable
+fcst_type_of_level: "level"         # Type of level for forecast variable
+shift: -1                           # Time shift for forecast files (if applicable)
 
+# ------------------------------
 # Reference Configuration
-ref_file_template: "/path/to/reference/obs_{year}{month}{day}/{cycle}/hrrr.t{hour}z.wrfprsf00.grib2" # Reference file template (netcdf or grib2)
-ref_var: "t"                                  # Reference variable name
+# ------------------------------
+ref_file_template: "/path/to/reference/obs_{year}{month}{day}/{cycle}/hrrr.t{hour}z.wrfprsf00.grib2"  # Reference file template (NetCDF or GRIB2)
+ref_var: "10si"                     # Reference variable name
+ref_level: 10                       # Level for reference variable
+ref_type_of_level: "heightAboveGround"  # Type of level for reference variable (e.g., heightAboveGround)
 
+# ------------------------------
 # Output Configuration
-output_dir: "/path/to/output_dir"             # Directory to save output
-output_filename: "output_file.txt"            # Output file template
+# ------------------------------
+output_dir: "/path/to/output_dir"   # Directory to save the output files
+output_filename: "output_file.txt"  # Name of the output file
 
-# Statistical Metrics (rmse, bias, quantiles, mae, gss, fbias)
+# ------------------------------
+# Statistical Metrics
+# ------------------------------
+# Specify metrics to calculate (available options: rmse, bias, quantiles, mae, gss, fbias)
 stat_name:                                    
-- "rmse"
-- "bias"
-- "quantiles"
-- "mae"
-- "gss"
+  - "rmse"
+  - "bias"
+  - "quantiles"
+  - "mae"
+  - "gss"
 
+# ------------------------------
 # Variable Threshold and Radius
-var_threshold: 10                  # Threshold value for analysis
-var_radius: 10                     # Influence radius for calculations (0 - None)
+# ------------------------------
+var_threshold: 10                  # Threshold value for analysis (e.g., wind speed)
+var_radius: 10                     # Radius of influence for calculations (0 means no radius applied)
 
+# ------------------------------
 # Grid and Interpolation Settings
+# ------------------------------
 interpolation: false               # Whether to interpolate data
-target_grid: "fcst"                # Target grid specification
+target_grid: "fcst"                # Target grid for analysis ("fcst" or "ref")
 
+# ------------------------------
 # Parallel Processing
+# ------------------------------
 processes: 200                     # Number of processes to run in parallel

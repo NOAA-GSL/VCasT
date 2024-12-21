@@ -61,10 +61,6 @@ mvt_stat config/config_mvt.yaml
 
 This command calculates metrics (e.g., RMSE, Bias, GSS) based on the configuration specified in the YAML file.
 
-#### Available Metrics
-
-- RMSE
-
 #### Generate Plots
 
 ```bash

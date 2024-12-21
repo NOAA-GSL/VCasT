@@ -45,13 +45,21 @@ pip install .
 export PYTHONPATH=`pwd`:${PYTHONPATH}
 ```
 
-This installs the `mvt_stat` and `mvt_plot` packages.
+This installs the `mvt_stat`, `mvt_plot`, and `mvt_check` packages.
 
 ---
 
 ## Usage
 
 ### Command Line
+
+#### Run checks
+
+```bash
+mvt_check file_path
+```
+
+This command checks if the file is supported by this library
 
 #### Run Statistics Calculation
 

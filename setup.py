@@ -29,6 +29,7 @@ setup(
         "console_scripts": [
             "mvt_stat=mvt.main:main",  # Allows running `mvt` from the CLI
             "mvt_plot=mvt.main_plot:main_plot",
+            "mvt_check=mvt.main_check:main_check"
         ]
     },
 )

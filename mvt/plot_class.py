@@ -146,18 +146,10 @@ class Plot:
                 color='black', alpha=1, linewidth=1.2
             )
 
-        stddev_ticks = np.arange(1, self.std_max, 1)
-        
-        # Vertical axis (top side)
-        for std in stddev_ticks:
-                self.ax.text(np.pi / 2, std, f"{std:.0f}", fontsize=10, ha="center", va="center", color="black",
-                            transform=self.ax.transData + plt.matplotlib.transforms.ScaledTranslation(-0.15, 0, self.fig.dpi_scale_trans)
-    )
-
         # Add labels for standard deviation and correlation
         self.ax.text(np.pi / 4, self.std_max * 1.1, "Correlation", fontsize=12, ha="center", va="center", rotation=-45)
         self.ax.text(0, self.std_max / 2, "Standard Deviation", fontsize=12, ha="center", va="center", transform=self.ax.transData + plt.matplotlib.transforms.ScaledTranslation(0, -0.45, self.fig.dpi_scale_trans))
-
+        self.ax.text(0, 0, "Standard Deviation", fontsize=12, ha="center", va="center", rotation = 90, transform=self.ax.transData + plt.matplotlib.transforms.ScaledTranslation(-0.45, self.std_max / 2 + 1.2, self.fig.dpi_scale_trans))
 
         # Title for the plot
         self.ax.set_title(self.title, fontsize=16, pad=20)
@@ -200,6 +192,18 @@ class Plot:
             self.ax.scatter(angles, stddev, label=label, color=color, marker=marker, s=20)
 
             self.ax.set_rmax(self.std_max)
+
+            # Get the ticks automatically set on the horizontal axis
+            stddev_ticks = self.ax.get_yticks()[:-1]
+            
+            # Vertical axis (top side)
+            for std in stddev_ticks:
+                if std > 0:  # Avoid placing a tick at zero if unnecessary
+                    self.ax.text(
+                        np.pi / 2, std, f"{std}", ha="center", va="center",
+                        transform=self.ax.transData + plt.matplotlib.transforms.ScaledTranslation(-0.15, 0, self.fig.dpi_scale_trans)
+                    )
+
 
     def finalize_and_save_plot(self):
         """

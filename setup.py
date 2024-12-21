@@ -27,8 +27,8 @@ setup(
     ],
     entry_points={
         "console_scripts": [
-            "mvts=mvt.main:main",  # Allows running `mvt` from the CLI
-            "mvtp=mvt.main_plot:main_plot",
+            "mvt_stat=mvt.main:main",  # Allows running `mvt` from the CLI
+            "mvt_plot=mvt.main_plot:main_plot",
         ]
     },
 )

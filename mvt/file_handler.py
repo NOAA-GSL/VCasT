@@ -4,6 +4,9 @@ import os
 import warnings
 from colorama import Fore, Style
 
+from colorama import Fore, Style  # Ensure colorama is imported
+import pygrib  # Ensure pygrib is installed: pip install pygrib
+
 def check_grib2(file_path):
     """
     Performs checks and extracts details for a GRIB2 file.
@@ -11,14 +14,23 @@ def check_grib2(file_path):
     with pygrib.open(file_path) as grib_file:
         print("GRIB2 Messages:")
         time_dim_checked = False
+        seen_variables = set()  # To keep track of processed variables
 
         for grib_msg in grib_file:
             # Extract metadata
             name = grib_msg.name
             short_name = grib_msg.shortName
+            level_type = grib_msg.typeOfLevel if hasattr(grib_msg, 'typeOfLevel') else "Unknown"
             dimensions = grib_msg.values.shape  # Dimensions as a tuple (e.g., (lat, lon))
             num_dims = len(dimensions)
-            level_type = grib_msg.typeOfLevel if hasattr(grib_msg, 'typeOfLevel') else "Unknown"
+
+            # Create a unique identifier for the variable
+            variable_key = (short_name, level_type)
+
+            # Skip if this variable has already been processed
+            if variable_key in seen_variables:
+                continue
+            seen_variables.add(variable_key)
 
             # Validate time dimension (if not checked already)
             if not time_dim_checked:

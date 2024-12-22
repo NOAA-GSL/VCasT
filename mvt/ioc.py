@@ -43,7 +43,7 @@ class PrepIO:
         """
         Initialize the class with the configuration file.
         """
-        self.available_vars = ["RMSE","BIAS","QUANTILES","MAE","GSS","FBIAS","POD","FAR","SR","CSI","STDEV","CORR"]
+        self.available_vars = ["RMSE","BIAS","QUANTILES","MAE","GSS","FBIAS","POD","FAR","SR","CSI","STDEV","CORR","FSS"]
 
         self.config = self.read_config_file(config_file)
         self.start_date = datetime.strptime(self.config['start_date'], "%Y-%m-%d_%H:%M:%S")

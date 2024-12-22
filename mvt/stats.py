@@ -1,4 +1,5 @@
 import numpy as np
+from scipy.ndimage import convolve
 
 def compute_rmse(forecast_values, reference_values):
     """
@@ -372,3 +373,57 @@ def compute_stdev(forecast_values, reference_values):
 
     # Compute and return the standard deviation of forecast values
     return np.std(forecast_values)
+
+def compute_fss(forecast_values, reference_values, threshold, neighborhood_size):
+    """
+    Compute the Fractions Skill Score (FSS) for spatial forecasts.
+
+    Parameters:
+    forecast_values (np.ndarray): Forecasted values of shape (n, m).
+    reference_values (np.ndarray): Reference values of shape (n, m).
+    threshold (float): The threshold above which an event is considered significant.
+    neighborhood_size (int): Size of the neighborhood for fraction computation (e.g., radius in grid points).
+
+    Returns:
+    float: The FSS value.
+
+    Raises:
+    ValueError: If the shapes of the inputs do not match or the neighborhood size is invalid.
+    """
+
+    if forecast_values.shape != reference_values.shape:
+        raise ValueError("Forecast values and reference values must have the same shape.")
+    if neighborhood_size <= 0:
+        raise ValueError("Neighborhood size must be greater than zero.")
+
+    # Create binary masks for the threshold
+    fcst_binary = forecast_values >= threshold
+    ref_binary = reference_values >= threshold
+
+    # Define the kernel for neighborhood averaging
+    kernel = np.ones((neighborhood_size, neighborhood_size))
+
+    # Compute fractions using 2D convolution
+    fcst_fractions = convolve(fcst_binary.astype(float), kernel, mode='constant', cval=0)
+    ref_fractions = convolve(ref_binary.astype(float), kernel, mode='constant', cval=0)
+
+    # Normalize fractions to account for kernel area
+    kernel_area = neighborhood_size ** 2
+    fcst_fractions /= kernel_area
+    ref_fractions /= kernel_area
+
+    # Compute the mean square difference of fractions
+    mse_fractions = np.mean((fcst_fractions - ref_fractions) ** 2)
+
+    # Compute the reference MSE
+    ref_mse = np.mean(ref_fractions ** 2) + np.mean(fcst_fractions ** 2)
+
+    # Handle case where ref_mse is zero
+    if ref_mse == 0:
+        return np.nan
+
+    # Calculate FSS
+    fss = 1 - mse_fractions / ref_mse
+    return fss
+
+

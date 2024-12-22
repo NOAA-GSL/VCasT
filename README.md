@@ -14,7 +14,8 @@ A Python-based tool for calculating and visualizing forecast verification statis
   - **POD (Probability of Detection)**: Measures the proportion of observed events correctly forecasted.
   - **FAR (False Alarm Ratio)**: Measures the proportion of forecasted events that did not occur.
   - **CSI (Critical Success Index)**: Combines hits, misses, and false alarms into a single metric.
-  - **Correlation and Standard Deviation**: Useful for Taylor Diagrams.
+  - **Correlatio (CORR) and Standard Deviation (STDEV)**: Useful for Taylor Diagrams.
+  - **Fractions Skill Score (FSS)**: Evaluates spatial forecasts by comparing fractions of grid points exceeding a threshold within a specified neighborhood.
 
 - **File Handling**:
   - Reads **GRIB2** and **NetCDF** files.

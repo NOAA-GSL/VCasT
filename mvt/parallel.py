@@ -64,9 +64,11 @@ def process_date_multiprocessing(date, fcst_file, ref_file, fcst_var, ref_var, i
             stats += [compute_csi(hits, misses, false_alarms)]
         if "SR" in ustat_name:
             stats += [compute_success_ratio(hits, false_alarms)]
+        if "FSS" in ustat_name:
+            stats += [compute_fss(fcst_data, interpolated_data, var_threshold, radius)]
    
-
         return stats
+    
     except Exception as e:
         raise Exception(f"Error processing {date}: {e}")
 

@@ -1,0 +1,29 @@
+input_stat_folder: /scratch2/BMC/fv3lam/Vanderlei.Vargas/verification_AIML/hands-on/ModelVerificationTool/temp
+line_type: cnt # fho, ctc, cts, cnt, mctc, mpr, sl1l2, sal1l2, vl1l2, vcnt, mcts, 
+               # pct, pstd, pjc, prc, eclv, val1l2, seeps_mpr, seeps
+
+date_column: fcst_valid_beg   # fcst_valid_beg, fcst_valid_end, obs_valid_beg, obs_valid_end
+start_date: "2024-04-01_02:00:00"  # Start date of the data processing
+end_date: "2024-04-07_02:00:00"    # End date of the data processing
+
+# Threshold filtering (min-max for multiple numerical columns)
+thresholds:
+  #rmse: [1, 2]  # Min, Max
+
+# String filtering (list of allowed values for each column)
+string_filters:
+  model: ["graphhrrr_mem000"]  # Only include these models
+  fcst_var: ["T2M"]  # Only include these models
+  #fcst_lev: ["0,*,*"]
+
+# Column filtering (Keep only these columns; leave empty to keep all)
+columns_to_keep: #["fcst_valid_beg", "model", "fcst_thresh", "obs_thresh", "line_type"]
+
+# Whether to save the reformatted DataFrame to a file
+reformat_file: false  # Set to false to disable writing the file
+output_reformat_file: "/scratch2/BMC/fv3lam/Vanderlei.Vargas/verification_AIML/hands-on/filtered_output.data"  # Path to save output
+
+# Extract variables for plotting
+stat_vars: ["mae","rmse"]
+output_file: true  # Set to false to disable writing the file
+output_plot_file: "/scratch2/BMC/fv3lam/Vanderlei.Vargas/verification_AIML/hands-on/filtered_output.data"  # Path to save output

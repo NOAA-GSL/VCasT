@@ -1,16 +1,17 @@
-plot_type: performance_diagram
-var_name: RMSE
-plot_title: Performance Diagram
-legend_title: Model
-input_files:
-- "/path/to/file_test_1.txt"
-- "/path/to/file_test_2.txt"
+plot_type: line
+vars:
+- rmse: "../filtered_output.data"
+- mae: "../filtered_output.data"
+
+# General plot parameters
+plot_title: T2M
+legend_title: Stats
 labels:
-- "Model 1"
-- "Model 2"
+- "RMSE"
+- "MAE"
 line_color:
 - "blue"
-- "green"
+- "black"
 line_marker:
 - "d"
 - "o"
@@ -21,3 +22,12 @@ line_width:
 - 1
 - 1
 output_filename: output.png
+
+# Line plot variables
+x_label: "x"
+y_label: "y"
+ylim: [0,1.5]
+xlim: [0,20]
+grid: true
+y_ticks: [0,0.5,1,1.5]
+

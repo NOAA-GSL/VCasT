@@ -15,16 +15,34 @@ class Plot:
         self.title = self.config.get("plot_title", "Default Plot")
         self.legend_title = self.config.get("legend_title", "Legend")
         self.output_file = self.config.get("output_filename", "output.png")
-        self.input_files = self.config.get("input_files", [])
+        self.vars_dict = self.config.get("vars", [])
         self.labels = self.config.get("labels", [])
         self.colors = self.config.get("line_color", [])
         self.markers = self.config.get("line_marker", [])
         self.line_styles = self.config.get("line_type", [])
         self.line_widths = self.config.get("line_width", [])
-        self.var_name = self.config.get("var_name", "RMSE")
-        self.date_col = "DATE"
-        self.y_label = self.config.get("y_label", "Value")
+        self.var_name = self.config.get("var_name",[])
+        self.date_col = "date"
+        self.x_label = self.config.get("x_label","")
+        self.y_label = self.config.get("y_label", "")
+        self.xlim = self.config.get("xlim", None)
+        self.ylim = self.config.get("ylim", None)
         self.reference_std = self.config.get("reference_std", 2)
+        self.grid = self.config.get('grid',False)
+        self.y_ticks = self.config.get('y_ticks',[])
+
+
+        # Ensure the vars dictionary is formatted correctly
+        if not isinstance(self.vars_dict, list) or not all(isinstance(item, dict) for item in self.vars_dict):
+            raise ValueError("Invalid format for 'vars' in YAML. Expected a list of dictionaries.")
+
+        # Flatten the dictionary list into key-value pairs
+        self.vars_mapping = {list(item.keys())[0]: list(item.values())[0] for item in self.vars_dict}
+
+        # Check that all lists are of the same length
+        num_files = len(self.vars_mapping)
+        if not (len(self.labels) == len(self.colors) == len(self.markers) == len(self.line_styles) == len(self.line_widths) == num_files):
+            raise ValueError("Mismatch in number of input files and line properties in YAML configuration.")
 
     def setup_performance_diagram(self):
         """
@@ -77,9 +95,9 @@ class Plot:
         Add data from files to the Performance Diagram.
         """
         for file, label, color, marker, line_style, line_width in zip(
-            self.input_files, self.labels, self.colors, self.markers, self.line_styles, self.line_widths
+            self.vars, self.labels, self.colors, self.markers, self.line_styles, self.line_widths
         ):
-            df = pd.read_csv(file)
+            df = pd.read_csv(file,sep="\t")
             df = df.dropna(subset=['POD', 'SR', 'CSI', 'FBIAS'])
             self.ax.plot(
                 df['SR'], df['POD'], label=label, color=color, marker=marker,
@@ -162,7 +180,7 @@ class Plot:
     def get_std_max(self):
 
         std_max = 0
-        for file in self.input_files:
+        for file in self.vars:
             df = pd.read_csv(file)
 
             # Extract standard deviation and correlation from the file
@@ -178,8 +196,8 @@ class Plot:
         """
         Add data from input files to the Taylor Diagram.
         """
-        for file, label, color, marker in zip(self.input_files, self.labels, self.colors, self.markers):
-            df = pd.read_csv(file)
+        for file, label, color, marker in zip(self.vars, self.labels, self.colors, self.markers):
+            df = pd.read_csv(file,sep="\t")
 
             # Extract standard deviation and correlation from the file
             stddev = df['STDEV'].values
@@ -204,12 +222,73 @@ class Plot:
                         transform=self.ax.transData + plt.matplotlib.transforms.ScaledTranslation(-0.15, 0, self.fig.dpi_scale_trans)
                     )
 
+    def setup_line_plot(self):
+        """
+        Prepares an XY plot using parameters from a YAML configuration file.
+        Does not draw the lines—just sets up the figure, axes, and labels.
+        """
+        
+        try:
+   
+            # Create figure and axis
+            self.fig, self.ax = plt.subplots(figsize=(10, 8))
+    
+            # Set title and labels
+            self.ax.set_title(self.title, fontsize=14)
+            self.ax.set_xlabel(self.x_label, fontsize=12)
+            self.ax.set_ylabel(self.y_label, fontsize=12)
+
+            if self.xlim:
+                self.ax.set_xlim(self.xlim)
+            if self.ylim:
+                self.ax.set_ylim(self.ylim)
+
+            self.ax.set_yticks(self.y_ticks)
+
+            # Enable grid
+            if self.grid:
+                self.ax.grid(True, linestyle="--", alpha=0.6)
+    
+        except Exception as e:
+            raise RuntimeError(f"Error in `prepare_xy_plot`: {str(e)}")
+
+    def add_lines_to_plot(self):
+        """
+        Adds lines to the provided Matplotlib axis object based on YAML configuration.
+        """
+        try:
+    
+            # Loop through each variable and its associated file
+            for i, (var, file) in enumerate(self.vars_mapping.items()):
+                # Load data (assuming space-separated values)
+                data = pd.read_csv(file, sep="\t")
+    
+                # Ensure the variable exists in the DataFrame
+                if var not in data.columns:
+                    raise ValueError(f"Variable '{var}' not found in file {file}.")
+    
+                x_values = data.iloc[:, 0]  # Assume first column is X-axis
+                y_values = data[var]  # Select Y column based on the variable name
+    
+                # Plot the line
+                self.ax.plot(
+                    x_values, y_values,
+                    color=self.colors[i],
+                    marker=self.markers[i],
+                    linestyle=self.line_styles[i],
+                    linewidth=self.line_widths[i],
+                    label=f"{self.labels[i]}"  # Append variable name to legend
+                )
+
+        except Exception as e:
+            raise RuntimeError(f"Error in `add_lines_to_plot`: {str(e)}")
+
 
     def finalize_and_save_plot(self):
         """
         Finalize and save the plot.
         """
-        self.ax.legend(loc='lower right', title=self.legend_title, fontsize='medium', shadow=True)
+        self.ax.legend(title=self.legend_title, fontsize='medium', shadow=True)
         plt.savefig(self.output_file, bbox_inches='tight')
         plt.close()
         print(f"Plot saved to {self.output_file}")
@@ -224,8 +303,11 @@ class Plot:
         elif self.plot_type == "taylor_diagram":
             self.setup_taylor_diagram()
             self.add_to_taylor_diagram()            
+        elif self.plot_type == "line":
+            self.setup_line_plot()
+            self.add_lines_to_plot()
         else:
-            print("Invalid plot type. Please specify 'performance_diagram'.")
+            print("Invalid plot type. Please specify 'performance_diagram, taylor_diagram or line'.")
             return
 
         self.finalize_and_save_plot()

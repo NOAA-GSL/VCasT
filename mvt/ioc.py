@@ -43,7 +43,7 @@ class PrepIO:
         """
         Initialize the class with the configuration file.
         """
-        self.available_vars = ["RMSE","BIAS","QUANTILES","MAE","GSS","FBIAS","POD","FAR","SR","CSI","STDEV","CORR","FSS"]
+        self.available_vars = ["rmse", "bias", "quantiles", "mae", "gss", "fbias", "pod", "far", "sr", "csi", "stdev", "corr", "fss"]
 
         self.config = self.read_config_file(config_file)
         self.start_date = datetime.strptime(self.config['start_date'], "%Y-%m-%d_%H:%M:%S")
@@ -107,16 +107,16 @@ class PrepIO:
         os.makedirs(self.output_dir, exist_ok=True)
         output_path = os.path.join(self.output_dir, self.output_filename)
         self.output_file = open(output_path, 'w')
-        self.writer = csv.writer(self.output_file)
+        self.writer = csv.writer(self.output_file, delimiter="\t")
 
-        header = ["DATE"] 
+        header = ["date"] 
 
         for i in self.stat_name:
-            if i.upper() in self.available_vars:
-                if i.upper() in "QUANTILES":
+            if i.lower() in self.available_vars:
+                if i.lower() in "quantiles":
                     header += ["25p","50p","75p","IQR","LW","UW"]
                 else:
-                    header += [i.upper()]
+                    header += [i.lower()]
 
         self.write_to_output_file(header)
 

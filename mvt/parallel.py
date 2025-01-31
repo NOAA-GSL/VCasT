@@ -34,37 +34,37 @@ def process_date_multiprocessing(date, fcst_file, ref_file, fcst_var, ref_var, i
         # Compute statistics
         stats = [date]
  
-        ustat_name = [s.upper() for s in stat_name]
+        ustat_name = [s.lower() for s in stat_name]
 
-        if "GSS" in ustat_name or "FBIAS" in ustat_name or "POD" in ustat_name or "FAR" in ustat_name or "CSI" in ustat_name or "SR" in ustat_name:
+        if "gss" in ustat_name or "fbias" in ustat_name or "pod" in ustat_name or "far" in ustat_name or "csi" in ustat_name or "sr" in ustat_name:
             # Compute scores if any of these metrics are requested
             hits, misses, false_alarms, correct_rejections, total_events = compute_scores(fcst_data, interpolated_data, var_threshold, radius)
 
-        if 'RMSE' in ustat_name:
+        if 'rmse' in ustat_name:
             stats += [compute_rmse(fcst_data, interpolated_data)]
-        if 'BIAS' in ustat_name:
+        if 'bias' in ustat_name:
             stats += [compute_bias(fcst_data, interpolated_data)]
-        if 'QUANTILES' in ustat_name:
+        if 'quantiles' in ustat_name:
             stats += compute_quantiles(fcst_data, interpolated_data)
-        if "MAE" in ustat_name:
+        if "mae" in ustat_name:
             stats += [compute_mae(fcst_data, interpolated_data)]
-        if "CORR" in ustat_name:
+        if "corr" in ustat_name:
             stats += [compute_correlation(fcst_data, interpolated_data)]
-        if "STDEV" in ustat_name:
+        if "stdev" in ustat_name:
             stats += [compute_stdev(fcst_data, interpolated_data)]
-        if "GSS" in ustat_name:
+        if "gss" in ustat_name:
             stats += [compute_gss(hits, misses, false_alarms, total_events)]
-        if "FBIAS" in ustat_name:
+        if "fbias" in ustat_name:
             stats += [calculate_fbias(hits, false_alarms, misses)]
-        if "POD" in ustat_name:
+        if "pod" in ustat_name:
             stats += [compute_pod(hits, misses)]
-        if "FAR" in ustat_name:
+        if "far" in ustat_name:
             stats += [compute_far(hits, false_alarms)]
-        if "CSI" in ustat_name:
+        if "csi" in ustat_name:
             stats += [compute_csi(hits, misses, false_alarms)]
-        if "SR" in ustat_name:
+        if "sr" in ustat_name:
             stats += [compute_success_ratio(hits, false_alarms)]
-        if "FSS" in ustat_name:
+        if "fss" in ustat_name:
             stats += [compute_fss(fcst_data, interpolated_data, var_threshold, radius)]
    
         return stats

@@ -1,4 +1,4 @@
-# Model Verification Tool (MVT)
+# Verification and Forecast Evaluation Tool (VCasT)
 
 A Python-based tool for calculating and visualizing forecast verification statistics such as RMSE, bias, quantiles, and more. This tool is designed for comparing model outputs against observations or references, supporting both GRIB2 and NetCDF file formats.
 

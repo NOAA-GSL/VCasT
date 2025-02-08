@@ -1,14 +1,14 @@
 from setuptools import setup, find_packages
 
 setup(
-    name="mvt",  # Name of your project/package
-    version="1.0.0",        # Version of your package
-    package_dir={"": "mvt"},  # Specify src as the root for packages
-    packages=find_packages(where="mvt"),  # Automatically discover packages in src/
+    name="vcast",  
+    version="1.0.0",    
+    package_dir={"": "vcast"},
+    packages=find_packages(where="vcast"),
     description="A tool for calculating forecast statistics like RMSE and bias.",
     author="Vanderlei Vargas Jr.",
     author_email="vanderlei.vargas@noaa.gov",
-    url="https://github.com/VanderleiVargas-NOAA/ModelVerificationTool",  # Repository URL (optional)
+    url="https://github.com/VanderleiVargas-NOAA/VCast",
     install_requires=[
         "numpy",
         "pygrib",
@@ -19,7 +19,7 @@ setup(
         "pandas",
         "matplotlib",
     ],
-    python_requires=">=3.6",  # Specify compatible Python versions
+    python_requires=">=3.6",  
     classifiers=[
         "Programming Language :: Python :: 3",
         "License :: OSI Approved :: MIT License",
@@ -27,10 +27,7 @@ setup(
     ],
     entry_points={
         "console_scripts": [
-            "mvt_stat=mvt.main:main",  # Allows running `mvt` from the CLI
-            "mvt_plot=mvt.main_plot:main_plot",
-            "mvt_check=mvt.main_check:main_check",
-            "mvt_conv=mvt.main_conv:main_conv"
+            "vcast=vcast.main:main",
         ]
     },
 )

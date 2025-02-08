@@ -1,33 +1,96 @@
 plot_type: line
 vars:
-- rmse: "../filtered_output.data"
-- mae: "../filtered_output.data"
+  - fbias: "../test_agg.data"
+  - fbias: "../test_agg.data"
+  - fbias: "../test_agg.data"
+  - fbias: "../test_agg.data"
+  - fbias: "../test_agg.data"
+  - fbias: "../test_agg.data"
+  - fbias: "../test_agg.data"
+  - fbias: "../test_agg.data"
+  - fbias: "../test_agg.data"
+  - fbias: "../test_agg.data"
+  - fbias: "../test_agg_all.data"
+
+unique: model
 
 # General plot parameters
-plot_title: T2M
-legend_title: Stats
+plot_title: APCP_03
+legend_title: Model
 labels:
-- "RMSE"
-- "MAE"
+- "mem01"
+- "mem02"
+- "mem03"
+- "mem04"
+- "mem05"
+- "mem06"
+- "mem07"
+- "mem08"
+- "mem09"
+- "mem10"
+- "average"
+
 line_color:
+- "green"
+- "red"
 - "blue"
+- "orange"
+- "purple"
+- "cyan"
+- "blue"
+- "orange"
+- "purple"
+- "cyan"
 - "black"
+
 line_marker:
-- "d"
 - "o"
+- "^"
+- "s"
+- "p"
+- "*"
+- "h"
+- "d"
+- "v"
+- "8"
+- "<"
+- "o"
+
 line_type:
 - "-"
+- "--"
 - "-."
+- ":"
+- "-"
+- "--"
+- "-."
+- ":"
+- "-"
+- "--"
+- "-"
+
 line_width:
 - 1
 - 1
-output_filename: output.png
+- 1
+- 1
+- 1
+- 1
+- 1
+- 1
+- 1
+- 1
+- 1.2
+
+
+output_filename: FBIAS_APCP_03.png
 
 # Line plot variables
-x_label: "x"
-y_label: "y"
-ylim: [0,1.5]
-xlim: [0,20]
+x_label: "Lead Time"
+y_label: "FBIAS"
+ylim: [1,1.6]
+xlim: 
 grid: true
-y_ticks: [0,0.5,1,1.5]
+yticks: [1,1.1,1.2,1.3,1.4,1.5,1.6]
+xticks: 
 

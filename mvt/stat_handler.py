@@ -2,6 +2,7 @@ import yaml
 import pandas as pd
 import glob
 import mvt.constants as cn
+import numpy as np
 
 class ReadStat:
     def __init__(self, config_file):
@@ -28,6 +29,9 @@ class ReadStat:
         self.stat_vars = self.config.get("stat_vars", [])  # Columns to keep (empty means keep all)
         self.output_file = self.config.get("output_file", False)  # Default to False if not found
         self.output_plot_file = self.config['output_plot_file']
+        self.aggregate = self.config.get("aggregate", False)  # Default to False if not found
+        self.group_by = self.config.get("group_by", [])   # Default to False if not found
+        self.output_agg_file = self.config['output_agg_file']
 
         if self.line_type.lower() not in self.available_line_types:
             raise Exception(f"Line type not {self.line_type} not recognized.")
@@ -40,11 +44,14 @@ class ReadStat:
         # Loop through all .stat files
         for file in sfiles:
             df = self.process_file(file, self.line_type)  # Process each file
-        
+           
             # Only concatenate if df is not empty
             if not df.empty:
                 df_combined = pd.concat([df_combined, df], ignore_index=True)
 
+        if df_combined.empty:
+            raise ValueError("The DataFrame is empty after the line type filter.")
+        
         df = df_combined
 
         df = self.filter_by_date(df, self.date_column, self.start_date, self.end_date)
@@ -69,6 +76,8 @@ class ReadStat:
         #self.validate_stat_vars(df, self.stat_vars)
 
         new_columns = [col.lower() for col in self.stat_vars if col.lower() in df.columns]
+        # Convert the selected columns to numeric, coercing errors to NaN
+        df[new_columns] = df[new_columns].apply(pd.to_numeric, errors="coerce")
 
         scol = []
         for column, values in self.string_filters.items():
@@ -80,6 +89,10 @@ class ReadStat:
 
         if self.output_file:
             self.save_dataframe(df, self.output_plot_file)
+
+        if self.aggregate:
+            df = self.aggregation(df, self.group_by)
+            self.save_dataframe(df, self.output_agg_file)
 
     @staticmethod
     def read_config_file(config_file):
@@ -105,7 +118,8 @@ class ReadStat:
         headers = self.all_columns(line_type)
         
         # Create an empty DataFrame with these columns
-        df = pd.DataFrame(columns=headers)
+        df = pd.DataFrame(columns=headers)        
+
 
         matching_rows = []
 
@@ -116,7 +130,7 @@ class ReadStat:
             for line in file:
                 # Split the line into columns (handling multiple spaces)
                 row_data = line.split()
-                
+               
                 # Ensure the line has enough columns before proceeding
                 if len(row_data) == len(headers):
                     # Check if the line contains the specific line type
@@ -148,6 +162,7 @@ class ReadStat:
     
             # Check for NaT (invalid dates after conversion)
             if df[date_column].isna().all():
+                print(df[date_column])
                 raise ValueError(f"All values in column '{date_column}' could not be converted to datetime format.")
     
             # Convert start and end dates from YAML to datetime
@@ -248,6 +263,28 @@ class ReadStat:
         except Exception as e:
             raise RuntimeError(f"Error in `filter_by_columns`: {str(e)}")
 
+    def aggregation(self, df, group_by_columns):
+        """
+        Aggregates the given DataFrame by the specified group_by_columns while keeping 
+        the 'date' column if all values in the group are the same.
+        
+        Parameters:
+        - df (pd.DataFrame): Input DataFrame containing the data.
+        - group_by_columns (list): List of column names to group by.
+        
+        Returns:
+        - pd.DataFrame: Aggregated DataFrame.
+        """
+    
+        # Define aggregation functions for numeric columns
+        aggregation_functions = {col: 'mean' for col in df.select_dtypes(include=['number']).columns}
+    
+        # Perform the aggregation
+        aggregated_df = df.groupby(group_by_columns, as_index=False).agg(aggregation_functions)
+    
+        return aggregated_df
+
+    
     def save_dataframe(self, df, output_file):
         """
         Saves the DataFrame to a CSV file if reformat_file is set to True.

@@ -2,6 +2,7 @@ import yaml
 import pandas as pd
 import matplotlib.pyplot as plt
 import numpy as np
+import matplotlib.dates as mdates
 
 class Plot:
     def __init__(self, config_file):
@@ -16,6 +17,7 @@ class Plot:
         self.legend_title = self.config.get("legend_title", "Legend")
         self.output_file = self.config.get("output_filename", "output.png")
         self.vars_dict = self.config.get("vars", [])
+        self.unique = self.config.get("unique",None)
         self.labels = self.config.get("labels", [])
         self.colors = self.config.get("line_color", [])
         self.markers = self.config.get("line_marker", [])
@@ -29,19 +31,25 @@ class Plot:
         self.ylim = self.config.get("ylim", None)
         self.reference_std = self.config.get("reference_std", 2)
         self.grid = self.config.get('grid',False)
-        self.y_ticks = self.config.get('y_ticks',[])
+        self.yticks = self.config.get('yticks',[])
+        self.xticks = self.config.get('xticks',[])
 
 
         # Ensure the vars dictionary is formatted correctly
         if not isinstance(self.vars_dict, list) or not all(isinstance(item, dict) for item in self.vars_dict):
             raise ValueError("Invalid format for 'vars' in YAML. Expected a list of dictionaries.")
 
-        # Flatten the dictionary list into key-value pairs
-        self.vars_mapping = {list(item.keys())[0]: list(item.values())[0] for item in self.vars_dict}
-
         # Check that all lists are of the same length
-        num_files = len(self.vars_mapping)
+        num_files = len(self.vars_dict)
         if not (len(self.labels) == len(self.colors) == len(self.markers) == len(self.line_styles) == len(self.line_widths) == num_files):
+            # Debugging: Print all relevant variables
+            print("Labels:", self.labels)
+            print("Colors:", self.colors)
+            print("Markers:", self.markers)
+            print("Line Styles:", self.line_styles)
+            print("Line Widths:", self.line_widths)
+            print("Number of Files:", num_files)
+
             raise ValueError("Mismatch in number of input files and line properties in YAML configuration.")
 
     def setup_performance_diagram(self):
@@ -225,11 +233,9 @@ class Plot:
     def setup_line_plot(self):
         """
         Prepares an XY plot using parameters from a YAML configuration file.
-        Does not draw the lines—just sets up the figure, axes, and labels.
+        Does not draw the lines—just sets up the figure, axes, labels, and axis limits/ticks.
         """
-        
         try:
-   
             # Create figure and axis
             self.fig, self.ax = plt.subplots(figsize=(10, 8))
     
@@ -237,51 +243,99 @@ class Plot:
             self.ax.set_title(self.title, fontsize=14)
             self.ax.set_xlabel(self.x_label, fontsize=12)
             self.ax.set_ylabel(self.y_label, fontsize=12)
+    
+            for i, var_dict in enumerate(self.vars_dict):
+                for var, file in var_dict.items():
+            
+                    # Load data (assuming tab-separated values)
+                    data = pd.read_csv(file, sep="\t")
 
-            if self.xlim:
-                self.ax.set_xlim(self.xlim)
-            if self.ylim:
+                    is_date = False
+                    if "date" in data.columns:
+                        is_date = True
+
+                    break
+
+            if is_date:
+                # Set the x-axis to use date formatting (assumes x-axis values are datetime)
+                self.ax.xaxis.set_major_locator(mdates.AutoDateLocator())
+                self.ax.xaxis.set_major_formatter(mdates.DateFormatter("%m-%d %H:%M"))
+                self.fig.autofmt_xdate()  # Automatically rotate date labels for readability
+    
+            if hasattr(self, "ylim") and self.ylim:
                 self.ax.set_ylim(self.ylim)
-
-            self.ax.set_yticks(self.y_ticks)
-
-            # Enable grid
-            if self.grid:
+    
+            # Set y-ticks if provided
+            if hasattr(self, "yticks") and self.yticks:
+                self.ax.set_yticks(self.yticks)
+   
+            # Enable grid if requested
+            if hasattr(self, "grid") and self.grid:
                 self.ax.grid(True, linestyle="--", alpha=0.6)
     
         except Exception as e:
-            raise RuntimeError(f"Error in `prepare_xy_plot`: {str(e)}")
+            raise RuntimeError(f"Error in `setup_line_plot`: {str(e)}")
 
     def add_lines_to_plot(self):
         """
         Adds lines to the provided Matplotlib axis object based on YAML configuration.
         """
         try:
-    
-            # Loop through each variable and its associated file
-            for i, (var, file) in enumerate(self.vars_mapping.items()):
-                # Load data (assuming space-separated values)
-                data = pd.read_csv(file, sep="\t")
-    
-                # Ensure the variable exists in the DataFrame
-                if var not in data.columns:
-                    raise ValueError(f"Variable '{var}' not found in file {file}.")
-    
-                x_values = data.iloc[:, 0]  # Assume first column is X-axis
-                y_values = data[var]  # Select Y column based on the variable name
-    
-                # Plot the line
-                self.ax.plot(
-                    x_values, y_values,
-                    color=self.colors[i],
-                    marker=self.markers[i],
-                    linestyle=self.line_styles[i],
-                    linewidth=self.line_widths[i],
-                    label=f"{self.labels[i]}"  # Append variable name to legend
-                )
 
+            # Loop through each variable and its associated file
+            for i, var_dict in enumerate(self.vars_dict):
+                for var, file in var_dict.items():
+            
+                    # Load data (assuming tab-separated values)
+                    data = pd.read_csv(file, sep="\t")
+        
+                    # Handle the unique grouping (if applicable)
+                    if self.unique is not None:
+                        if self.unique in data.columns:
+                            values = np.unique(data[self.unique])                            
+                            if i < len(values):  # Ensure index is within bounds
+                                data = data[data[self.unique] == values[i-1]]
+                            else:
+                                raise IndexError(f"Index {i} out of bounds for unique values in {self.unique}.")
+        
+                    # Determine x-axis values based on 'date' or 'fcst_lead'
+                    if "date" in data.columns:
+                        dates = pd.to_datetime(data["date"])
+                        x_values = mdates.date2num(dates)
+                    elif "fcst_lead" in data.columns:
+                        x_values = pd.to_numeric(data["fcst_lead"], errors="coerce").astype("Int64")
+                    else:
+                        raise ValueError(f"Neither 'date' nor 'fcst_lead' columns found in the file {file}.")
+        
+                    # Ensure the variable exists in the DataFrame
+                    if var not in data.columns:
+                        raise ValueError(f"Variable '{var}' not found in the file {file}.")
+        
+                    # Extract Y-axis values
+                    y_values = data[var]
+        
+                    # Set x-ticks if provided
+                    if hasattr(self, "xticks") and self.xticks:
+                        custom_xticks = [x_values[i] for i in self.xticks if i < len(x_values)]
+                        self.ax.set_xticks(custom_xticks)
+        
+                    # Set x-axis limits if provided
+                    if hasattr(self, "xlim") and self.xlim:
+                        self.ax.set_xlim(x_values[self.xlim[0]], x_values[self.xlim[1]])
+        
+                    # Plot the line
+                    self.ax.plot(
+                        x_values, y_values,
+                        color=self.colors[i],
+                        marker=self.markers[i],
+                        linestyle=self.line_styles[i],
+                        linewidth=self.line_widths[i],
+                        label=f"{self.labels[i]}"
+                    )
+    
         except Exception as e:
             raise RuntimeError(f"Error in `add_lines_to_plot`: {str(e)}")
+
 
 
     def finalize_and_save_plot(self):

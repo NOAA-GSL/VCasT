@@ -1,10 +1,10 @@
 # __init__.py
 
-from mvt.interpolation import*
-from mvt.ioc import *
-from mvt.stats import *
-from mvt.parallel import *
-from mvt.plot_class import *
+from vcast.interpolation import*
+from vcast.ioc import *
+from vcast.stats import *
+from vcast.parallel import *
+from vcast.plot_class import *
 
 __all__ = [
     "interpolate_to_target_grid",

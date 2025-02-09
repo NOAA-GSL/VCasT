@@ -2,7 +2,7 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import numpy as np
 import matplotlib.dates as mdates
-from config_loader import ConfigLoader
+from vcast.io import ConfigLoader
 
 class Plot:
     def __init__(self, config_file):

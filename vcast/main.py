@@ -9,6 +9,7 @@ from vcast.plot_class import *
 from vcast.ioc import *
 from vcast.parallel import *
 import time
+from vcast.io import ConfigLoader, OutputFileHandler
 
 def detect_yaml_config(file_path):
     """
@@ -110,16 +111,16 @@ def main():
   
                 print_intro()
             
-                config = PrepIO(args.command_or_file)
+                config = ConfigLoader(args.command_or_file)
+
+                output = OutputFileHandler(config)
             
                 dates = dates_to_list(config.start_date, config.end_date,config.interval_hours)
                 fcst_files, ref_files = files_to_list(config.fcst_file_template, config.ref_file_template, dates, config.shift)
-                
-                config.open_output_file()
+                            
+                process_in_parallel(dates, fcst_files, ref_files, config, output)
             
-                process_in_parallel(dates, fcst_files, ref_files, config)
-            
-                config.close_output_file()
+                output.close_output_file()
             
                 print_conclusion(start_time)
                 sys.exit(0)

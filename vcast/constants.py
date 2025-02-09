@@ -1,4 +1,12 @@
 
+AVAILABLE_VARS = ["rmse", "bias", "quantiles", "mae", "gss", "fbias", "pod", "far", "sr", "csi", "stdev", "corr", "fss"]
+
+AVAILABLE_LINE_TYPES = [
+            "fho", "ctc", "cts", "cnt", "mctc", "mpr", "sl1l2", "sal1l2", 
+            "vl1l2", "vcnt", "pct", "pstd", "pjc", "prc", "eclv", "sl1l2", 
+            "sal1l2", "vl1l2", "val1l2", "vcnt", "mpr", "seeps_mpr", "seeps"
+        ]
+
 FULL_HEADER = [ 
     "version", "model", "desc", "fcst_lead", "fcst_valid_beg", "fcst_valid_end",
     "obs_lead", "obs_valid_beg", "obs_valid_end", "fcst_var", "fcst_units",

@@ -3,22 +3,17 @@ import glob
 import vcast.constants as cn
 import numpy as np
 from vcast.stat_handler import *
-from config_loader import ConfigLoader
+from vcast.io import ConfigLoader
+from vcast.constants import AVAILABLE_LINE_TYPES
 
 class ReadStat:
     def __init__(self, config_file):
         """
         Initialize the class with the configuration file.
         """
-        self.available_line_types = [
-            "fho", "ctc", "cts", "cnt", "mctc", "mpr", "sl1l2", "sal1l2", 
-            "vl1l2", "vcnt", "pct", "pstd", "pjc", "prc", "eclv", "sl1l2", 
-            "sal1l2", "vl1l2", "val1l2", "vcnt", "mpr", "seeps_mpr", "seeps"
-        ]
-
         config = ConfigLoader(config_file)
 
-        if config.line_type.lower() not in self.available_line_types:
+        if config.line_type.lower() not in AVAILABLE_LINE_TYPES:
             raise Exception(f"Line type not {config.line_type} not recognized.")
         
         sfiles = sorted(glob.glob(f'{config.input_stat_folder}/*.stat'))

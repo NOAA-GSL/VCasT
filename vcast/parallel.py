@@ -72,7 +72,7 @@ def process_date_multiprocessing(date, fcst_file, ref_file, fcst_var, ref_var, i
     except Exception as e:
         raise Exception(f"Error processing {date}: {e}")
 
-def process_in_parallel(dates, fcst_files, ref_files, config):
+def process_in_parallel(dates, fcst_files, ref_files, config, output):
     """
     Process all dates in parallel using multiprocessing.
     """
@@ -110,22 +110,48 @@ def process_in_parallel(dates, fcst_files, ref_files, config):
         results = pool.starmap(worker_function, zip(dates, fcst_files, ref_files))
 
     for row in results:
-        config.write_to_output_file(row)
+        output.write_to_output_file(row)
 
-def dates_to_list(start_date_object, end_date_object,interval_hours):
+def dates_to_list(start_date, end_date, interval_hours, date_format="%Y-%m-%d_%H:%M:%S"):
+    """
+    Converts start_date and end_date strings into datetime objects and generates a list 
+    of datetime objects at the specified interval.
+
+    Args:
+        start_date (str or datetime): Start date in string or datetime format.
+        end_date (str or datetime): End date in string or datetime format.
+        interval_hours (int or str): Interval in hours (can be int or string).
+        date_format (str): Format of the input date strings (default: "%Y-%m-%d_%H:%M:%S").
+
+    Returns:
+        list: List of datetime objects at the specified interval.
+    """
+    # Convert string dates to datetime objects if necessary
+    if isinstance(start_date, str):
+        start_date = datetime.strptime(start_date, date_format)
+    if isinstance(end_date, str):
+        end_date = datetime.strptime(end_date, date_format)
+
+    # Convert interval_hours to integer
+    try:
+        interval_hours = int(interval_hours)
+    except ValueError:
+        raise ValueError(f"Invalid interval_hours value: {interval_hours}. Must be an integer or string representing an integer.")
+
+    # Generate the list of dates
     dates = []
-    current_datetime = start_date_object
-    while current_datetime <= end_date_object:
+    current_datetime = start_date
+    while current_datetime <= end_date:
         dates.append(current_datetime)
-        current_datetime += timedelta(hours=interval_hours)
-    
-    return dates
+        current_datetime += timedelta(hours=interval_hours)  # Increment by interval_hours
+
+    return dates  # Return the list of dates
 
 def files_to_list(fcst_file_template, ref_file_template, dates, shift):
     ffiles = []
     rfiles = []
     for current_datetime in dates:
-        fcst_current_datetime = current_datetime + timedelta(hours=shift)
+        fcst_current_datetime = current_datetime + timedelta(hours=int(shift))
         fcycle = fcst_current_datetime.hour - fcst_current_datetime.hour%6
         fcst_file = format_file_template(fcst_file_template, fcst_current_datetime, fcycle)
         cycle = current_datetime.hour - current_datetime.hour%6

@@ -1,43 +1,39 @@
-import yaml
 import pandas as pd
 import matplotlib.pyplot as plt
 import numpy as np
 import matplotlib.dates as mdates
+from config_loader import ConfigLoader
 
 class Plot:
     def __init__(self, config_file):
         """
         Initialize the Plot class with a YAML configuration file.
         """
-        with open(config_file, 'r') as file:
-            self.config = yaml.safe_load(file)
+        config = ConfigLoader(config_file)
 
-        self.plot_type = self.config.get("plot_type", "performance_diagram")
-        self.title = self.config.get("plot_title", "Default Plot")
-        self.legend_title = self.config.get("legend_title", "Legend")
-        self.output_file = self.config.get("output_filename", "output.png")
-        self.vars_dict = self.config.get("vars", [])
-        self.unique = self.config.get("unique",None)
-        self.labels = self.config.get("labels", [])
-        self.colors = self.config.get("line_color", [])
-        self.markers = self.config.get("line_marker", [])
-        self.line_styles = self.config.get("line_type", [])
-        self.line_widths = self.config.get("line_width", [])
-        self.var_name = self.config.get("var_name",[])
+        self.plot_type = config.plot_type
+        self.title = config.plot_title
+        self.legend_title = config.legend_title
+        self.output_file = config.output_filename
+        self.vars_dict = config.vars
+        self.unique = config.unique  
+        self.labels = config.labels
+        self.colors = config.line_color
+        self.markers = config.line_marker
+        self.line_styles = config.line_type
+        self.line_widths = config.line_width
         self.date_col = "date"
-        self.x_label = self.config.get("x_label","")
-        self.y_label = self.config.get("y_label", "")
-        self.xlim = self.config.get("xlim", None)
-        self.ylim = self.config.get("ylim", None)
-        self.reference_std = self.config.get("reference_std", 2)
-        self.grid = self.config.get('grid',False)
-        self.yticks = self.config.get('yticks',[])
-        self.xticks = self.config.get('xticks',[])
-
+        self.x_label = config.x_label
+        self.y_label = config.y_label
+        self.xlim = config.xlim
+        self.ylim = config.ylim
+        self.grid = config.grid
+        self.yticks = config.yticks
+        self.xticks = config.xticks
 
         # Ensure the vars dictionary is formatted correctly
-        if not isinstance(self.vars_dict, list) or not all(isinstance(item, dict) for item in self.vars_dict):
-            raise ValueError("Invalid format for 'vars' in YAML. Expected a list of dictionaries.")
+        # if not isinstance(self.vars_dict, list) or not all(isinstance(item, dict) for item in self.vars_dict):
+        #     raise ValueError("Invalid format for 'vars' in YAML. Expected a list of dictionaries.")
 
         # Check that all lists are of the same length
         num_files = len(self.vars_dict)
@@ -245,7 +241,8 @@ class Plot:
             self.ax.set_ylabel(self.y_label, fontsize=12)
     
             for i, var_dict in enumerate(self.vars_dict):
-                for var, file in var_dict.items():
+                var_dict_as_dict = vars(var_dict)  # Convert ConfigObject to a dictionary
+                for var, file in var_dict_as_dict.items():
             
                     # Load data (assuming tab-separated values)
                     data = pd.read_csv(file, sep="\t")
@@ -284,7 +281,8 @@ class Plot:
 
             # Loop through each variable and its associated file
             for i, var_dict in enumerate(self.vars_dict):
-                for var, file in var_dict.items():
+                var_dict_as_dict = vars(var_dict)  # Convert ConfigObject to a dictionary
+                for var, file in var_dict_as_dict.items():
             
                     # Load data (assuming tab-separated values)
                     data = pd.read_csv(file, sep="\t")

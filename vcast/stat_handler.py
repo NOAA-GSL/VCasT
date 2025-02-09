@@ -1,10 +1,9 @@
-import yaml
 import pandas as pd
 import glob
 import vcast.constants as cn
 import numpy as np
 from vcast.stat_handler import *
-
+from config_loader import ConfigLoader
 
 class ReadStat:
     def __init__(self, config_file):
@@ -17,35 +16,19 @@ class ReadStat:
             "sal1l2", "vl1l2", "val1l2", "vcnt", "mpr", "seeps_mpr", "seeps"
         ]
 
-        self.config = self.read_config_file(config_file)
-        self.input_stat_folder = self.config['input_stat_folder']
-        self.line_type = self.config['line_type']
-        self.date_column = self.config["date_column"]
-        self.start_date = self.config["start_date"]
-        self.end_date = self.config["end_date"]
-        self.thresholds = self.config.get("thresholds", {})  # Min-Max filter for numerical columns
-        self.string_filters = self.config.get("string_filters", {})  # Allowed values for string columns
-        self.columns_to_keep = self.config.get("columns_to_keep", [])  # Columns to keep (empty means keep all)
-        self.reformat_file = self.config.get("reformat_file", False)  # Default to False if not found
-        self.output_reformat_file = self.config['output_reformat_file']
-        self.stat_vars = self.config.get("stat_vars", [])  # Columns to keep (empty means keep all)
-        self.output_file = self.config.get("output_file", False)  # Default to False if not found
-        self.output_plot_file = self.config['output_plot_file']
-        self.aggregate = self.config.get("aggregate", False)  # Default to False if not found
-        self.group_by = self.config.get("group_by", [])   # Default to False if not found
-        self.output_agg_file = self.config['output_agg_file']
+        config = ConfigLoader(config_file)
 
-        if self.line_type.lower() not in self.available_line_types:
-            raise Exception(f"Line type not {self.line_type} not recognized.")
+        if config.line_type.lower() not in self.available_line_types:
+            raise Exception(f"Line type not {config.line_type} not recognized.")
         
-        sfiles = sorted(glob.glob(f'{self.input_stat_folder}/*.stat'))
+        sfiles = sorted(glob.glob(f'{config.input_stat_folder}/*.stat'))
 
         # Initialize an empty DataFrame with correct headers
-        df_combined = pd.DataFrame(columns=self.all_columns(self.line_type))
+        df_combined = pd.DataFrame(columns=self.all_columns(config.line_type))
 
         # Loop through all .stat files
         for file in sfiles:
-            df = self.process_file(file, self.line_type)  # Process each file
+            df = self.process_file(file, config.line_type)  # Process each file
            
             # Only concatenate if df is not empty
             if not df.empty:
@@ -56,53 +39,45 @@ class ReadStat:
         
         df = df_combined
 
-        df = self.filter_by_date(df, self.date_column, self.start_date, self.end_date)
+        df = self.filter_by_date(df, config.date_column, config.start_date, config.end_date)
 
-        df = df.sort_values(by=self.date_column)
+        df = df.sort_values(by=config.date_column)
 
-        if self.string_filters:  # Check if self.string_filters is not empty
-            df = self.filter_by_string(df, self.string_filters)
+        if config.string_filters:  # Check if self.string_filters is not empty
+            df = self.filter_by_string(df, config.string_filters)
 
-        if self.thresholds:  # Check if self.thresholds is not empty
-            df = self.filter_by_threshold(df, self.thresholds)        
+        if config.thresholds:  # Check if self.thresholds is not empty
+            df = self.filter_by_threshold(df, config.thresholds)        
 
-        if self.columns_to_keep:  # Check if self.columns_to_keep is not empty
-            df = self.filter_by_columns(df, self.columns_to_keep)
+        if config.columns_to_keep:  # Check if self.columns_to_keep is not empty
+            df = self.filter_by_columns(df, config.columns_to_keep)
 
         # Call only if reformat_file is True
-        if self.reformat_file:
-            self.save_dataframe(df, self.output_reformat_file)
+        if config.reformat_file:
+            self.save_dataframe(df, config.output_reformat_file)
 
-        df = df.rename(columns={self.date_column: "date"})
+        df = df.rename(columns={config.date_column: "date"})
 
         #self.validate_stat_vars(df, self.stat_vars)
 
-        new_columns = [col.lower() for col in self.stat_vars if col.lower() in df.columns]
+        new_columns = [col.lower() for col in config.stat_vars if col.lower() in df.columns]
         # Convert the selected columns to numeric, coercing errors to NaN
         df[new_columns] = df[new_columns].apply(pd.to_numeric, errors="coerce")
 
         scol = []
-        for column, values in self.string_filters.items():
+        for column, values in config.string_filters.items():
             scol += [column]
 
         columns = ['date'] + scol + new_columns
 
         df = df[columns]
 
-        if self.output_file:
-            self.save_dataframe(df, self.output_plot_file)
+        if config.output_file:
+            self.save_dataframe(df, config.output_plot_file)
 
-        if self.aggregate:
-            df = self.aggregation(df, self.group_by)
-            self.save_dataframe(df, self.output_agg_file)
-
-    @staticmethod
-    def read_config_file(config_file):
-        """
-        Read the configuration file and return the parsed config as a dictionary.
-        """
-        with open(config_file, 'r') as file:
-            return yaml.safe_load(file)
+        if config.aggregate:
+            df = self.aggregation(df, config.group_by)
+            self.save_dataframe(df, config.output_agg_file)
         
     def all_columns(self, line_type):
         # Get the additional columns based on line type, or an empty list if not found
@@ -220,7 +195,7 @@ class ReadStat:
         """
         try:
             df_filtered = df.copy()  # Work on a copy to avoid modifying original data
-    
+
             for column, allowed_values in string_filters.items():
                 if column in df_filtered.columns:
                     # Filter only rows where column values are in the allowed list
@@ -301,154 +276,3 @@ class ReadStat:
 
         except Exception as e:
             raise RuntimeError(f"Error in `save_dataframe`: {str(e)}")
-
-    def validate_stat_vars(self, df, stat_vars):
-        """
-        Validates if all required columns exist in the DataFrame for each statistic in stat_vars.
-        
-        Args:
-            df: Pandas DataFrame
-            stat_vars: List of statistics from YAML file (e.g., ['rmse', 'ff'])
-    
-        Returns:
-            Dictionary with validation results (True if all required fields exist, False otherwise).
-        """
-        try:
-            validation_results = {}
-    
-            for stat in stat_vars:
-                            # If the statistic itself is already a column, it's valid
-                if stat in df.columns:
-                    validation_results[stat] = True
-                    print(df[stat])
-                    continue  # Skip checking required fields
-                
-                required_fields = []
-    
-                # Check if the stat exists in STATISTIC_TO_FIELDS1
-                if stat in cn.STATISTIC_TO_FIELDS1:
-                    required_fields.extend(cn.STATISTIC_TO_FIELDS1[stat])
-    
-                # Check if the stat exists in STATISTIC_TO_FIELDS2
-                if stat in cn.STATISTIC_TO_FIELDS2:
-                    required_fields.extend(cn.STATISTIC_TO_FIELDS2[stat])
-    
-                # Remove duplicates (in case the stat appears in both dictionaries)
-                required_fields = list(set(required_fields))
-    
-                # Check if all required fields exist in the DataFrame
-                if required_fields:
-                    missing_fields = [field for field in required_fields if field not in df.columns]
-                    validation_results[stat] = len(missing_fields) == 0  # True if all fields exist
-    
-                    if missing_fields:
-                        print(f"Warning: Missing columns for '{stat}': {missing_fields}")
-                    else:
-                        df = calculate_stats(stat,df)
-                        print(df[stat])
-    
-                else:
-                    print(f"Warning: Statistic '{stat}' not found in STATISTIC_TO_FIELDS1 or STATISTIC_TO_FIELDS2.")
-                    validation_results[stat] = False
-    
-            return validation_results
-    
-        except Exception as e:
-            raise RuntimeError(f"Error in `validate_stat_vars`: {str(e)}")
-
-
-def calculate_stats(stat, df):
-    """
-    Calculates various contingency table statistics based on the provided statistic name.
-    
-    Args:
-        stat (str): The name of the statistic to calculate.
-        df (pd.DataFrame): The DataFrame containing contingency table values.
-
-    Returns:
-        pd.DataFrame: Updated DataFrame with the computed statistic.
-    """
-    # Ensure contingency table values are integers
-    contingency_vars = ['fy_oy', 'fy_on', 'fn_oy', 'fn_on']
-
-    print(df[contingency_vars])
-    for var in contingency_vars:
-        if var in df.columns:
-            df[var] = df[var].astype(int)
-
-    if stat == "baser":
-        # Base Rate: How often the event actually occurs
-        df["baser"] = df["fy_oy"] / (df["fy_oy"] + df["fn_oy"])
-
-    elif stat == "acc":
-        # Accuracy: Proportion of correct forecasts
-        df["acc"] = (df["fy_oy"] + df["fn_on"]) / (df["fy_oy"] + df["fn_on"] + df["fy_on"] + df["fn_oy"])
-
-    elif stat == "fbias":
-        # Frequency Bias: How often an event is forecasted compared to how often it occurs
-        df["fbias"] = (df["fy_oy"] + df["fy_on"]) / (df["fy_oy"] + df["fn_oy"])
-
-    elif stat == "fmean":
-        # Forecast Mean: Average of forecasted "yes" events
-        df["fmean"] = (df["fy_oy"] + df["fy_on"]) / 2
-
-    elif stat == "pody":
-        # Probability of Detection (PODY): Sensitivity or recall
-        df["pody"] = df["fy_oy"] / (df["fy_oy"] + df["fn_oy"])
-
-    elif stat == "pofd":
-        # Probability of False Detection (POFD): False alarm ratio among negatives
-        df["pofd"] = df["fy_on"] / (df["fy_on"] + df["fn_on"])
-
-    elif stat == "podn":
-        # Probability of Detecting "No" (PODN): Correctly forecasting no events
-        df["podn"] = df["fn_on"] / (df["fn_on"] + df["fy_on"])
-
-    elif stat == "far":
-        # False Alarm Ratio (FAR): How often a "yes" forecast is incorrect
-        df["far"] = df["fy_on"] / (df["fy_oy"] + df["fy_on"])
-
-    elif stat == "csi":
-        # Critical Success Index (CSI): Accuracy when ignoring "no-no" cases
-        df["csi"] = df["fy_oy"] / (df["fy_oy"] + df["fy_on"] + df["fn_oy"])
-
-    elif stat == "gss":
-        # Gilbert Skill Score (GSS): Measures forecast skill compared to random chance
-        df["gss"] = ((df["fy_oy"] * df["fn_on"]) - (df["fy_on"] * df["fn_oy"])) / (
-                    (df["fy_oy"] + df["fn_oy"]) * (df["fy_oy"] + df["fy_on"]) +
-                    (df["fn_on"] + df["fy_on"]) * (df["fn_on"] + df["fn_oy"])
-        )
-
-    elif stat == "hk":
-        # Hanssen-Kuipers Score (HK): True Skill Statistic
-        df["hk"] = (df["fy_oy"] / (df["fy_oy"] + df["fn_oy"])) - (df["fy_on"] / (df["fy_on"] + df["fn_on"]))
-
-    elif stat == "hss":
-        # Heidke Skill Score (HSS): Measures skill relative to random chance
-        df["hss"] = 2 * ((df["fy_oy"] * df["fn_on"]) - (df["fy_on"] * df["fn_oy"])) / (
-                    (df["fy_oy"] * df["fn_on"]) + (df["fy_on"] * df["fn_oy"]) +
-                    (df["fy_oy"] * df["fy_on"]) + (df["fn_oy"] * df["fn_on"])
-        )
-
-    elif stat == "odds":
-        # Odds Ratio: The ratio of correctly forecasted events vs. false alarms
-        df["odds"] = (df["fy_oy"] * df["fn_on"]) / (df["fy_on"] * df["fn_oy"])
-
-    elif stat == "lodds":
-        # Log Odds Ratio: Log transformation of the odds ratio
-        df["lodds"] = np.log(df["odds"])
-
-    elif stat == "baggs":
-        # Bias-Adjusted Gilbert Skill Score (BAGGS)
-        df["baggs"] = df["fy_oy"] / (df["fy_oy"] + df["fn_oy"] + df["fy_on"])
-
-    elif stat == "eclv":
-        # Economic Cost/Loss Value (ECLV): Measures financial impact
-        df["eclv"] = (df["fy_oy"] - df["fy_on"]) / (df["fy_oy"] + df["fn_oy"] + df["fy_on"] + df["fn_on"])
-
-    else:
-        raise Exception(f"Stat name '{stat}' not recognized.")
-
-    return df
-
-

@@ -3,8 +3,6 @@ from netCDF4 import Dataset
 import os
 import warnings
 from colorama import Fore, Style
-
-from colorama import Fore, Style  # Ensure colorama is imported
 import pygrib  # Ensure pygrib is installed: pip install pygrib
 
 def check_grib2(file_path):

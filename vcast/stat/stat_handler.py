@@ -1,10 +1,8 @@
 import pandas as pd
 import glob
-import vcast.constants as cn
-import numpy as np
-from vcast.stat_handler import *
+import vcast.stat.constants as cn
 from vcast.io import ConfigLoader
-from vcast.constants import AVAILABLE_LINE_TYPES
+from vcast.stat import AVAILABLE_LINE_TYPES
 
 class ReadStat:
     def __init__(self, config_file):

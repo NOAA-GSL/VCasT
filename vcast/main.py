@@ -2,46 +2,121 @@ import argparse
 import sys
 import os
 import yaml
-from vcast.stat_handler import *
-from vcast.file_handler import *
 from colorama import Fore, Style  
-from vcast.plot_class import *
-from vcast.ioc import *
-from vcast.parallel import *
-import time
-from vcast.io import ConfigLoader, OutputFileHandler
+
+from vcast.stat import ReadStat
+from vcast.plot import Plot
+from vcast.processing import process_in_parallel
+from vcast.io import ConfigLoader, OutputFileHandler, FileChecker, Preprocessor
+
 
 def detect_yaml_config(file_path):
     """
-    Determines the appropriate module to run based on the YAML configuration.
+    Determines the appropriate module to run based on the YAML configuration content.
     
-    Parameters:
+    Args:
         file_path (str): Path to the YAML file.
     
     Returns:
-        str: 'convert' for main_conv, 'plot' for main_plot, 'stats' for main_stat, otherwise None.
+        str: 'convert' for statistical extraction, 'plot' for plotting, 'stats' for statistical analysis, 
+             or None if the YAML format is unrecognized.
     """
     try:
         with open(file_path, "r") as file:
             config = yaml.safe_load(file)
 
-        # If it contains statistical processing elements, assume it's for conversion
-        required_keys_for_conversion = ["input_stat_folder", "line_type", "date_column", "output_file"]
-        if all(key in config for key in required_keys_for_conversion):
-            return "convert"
+        if isinstance(config, dict):
+            if all(key in config for key in ["input_stat_folder", "line_type", "date_column", "output_file"]):
+                return "convert"
+            
+            if all(key in config for key in ["plot_type", "vars", "output_filename"]):
+                return "plot"
+            
+            if all(key in config for key in ["stat_name", "fcst_file_template", "ref_file_template"]):
+                return "stats"
 
-        # If it contains plotting parameters, assume it's for plotting
-        required_keys_for_plot = ["plot_type", "vars", "output_filename"]
-        if all(key in config for key in required_keys_for_plot):
-            return "plot"
+    except Exception as e:
+        print(Fore.RED + f"Error reading YAML file: {file_path} - {e}" + Style.RESET_ALL)
 
-        # If it contains statistical metric calculations, assume it's for main_stat
-        required_keys_for_stats = ["stat_name", "fcst_file_template", "ref_file_template"]
-        if all(key in config for key in required_keys_for_stats):
-            return "stats"
+    return None  # If the file doesn't match any known YAML format
 
-    except:
-        return None
+
+def handle_file_check(file_path):
+    """
+    Handles file checking for NetCDF and GRIB2 formats.
+    
+    Args:
+        file_path (str): Path to the file to check.
+    """
+    print(f"Checking file: {file_path}...")
+    
+    fc = FileChecker(file_path)
+    file_type = fc.identify_file_type()
+
+    if file_type == "netcdf":
+        print(Fore.GREEN + "File Type: NetCDF" + Style.RESET_ALL)
+        fc.check_netcdf()
+    elif file_type == "grib2":
+        print(Fore.GREEN + "File Type: GRIB2" + Style.RESET_ALL)
+        fc.check_grib2()
+    else:
+        print(Fore.RED + "Unknown file type. Only NetCDF and GRIB2 are supported." + Style.RESET_ALL)
+        sys.exit(1)
+
+    print("\n" + "-" * 10)
+    print(Fore.GREEN + "File check passed." + Style.RESET_ALL)
+    print("-" * 10 + "\n")
+    sys.exit(0)
+
+
+def handle_conversion(file_path):
+    """
+    Handles conversion of METplus statistical files.
+    
+    Args:
+        file_path (str): Path to the YAML configuration file.
+    """
+    print(f"Processing METplus statistics from: {file_path} ...")
+    ReadStat(file_path)
+    sys.exit(0)
+
+
+def handle_plotting(file_path):
+    """
+    Handles plotting based on the YAML configuration.
+    
+    Args:
+        file_path (str): Path to the YAML configuration file.
+    """
+    print(f"Generating plot from: {file_path} ...")
+    plot = Plot(file_path)
+    plot.plot()
+    sys.exit(0)
+
+
+def handle_statistical_analysis(file_path):
+    """
+    Handles statistical analysis using multiprocessing.
+    
+    Args:
+        file_path (str): Path to the YAML configuration file.
+    """
+    print(f"Running statistical analysis from: {file_path} ...")
+
+    config = ConfigLoader(file_path)
+    output = OutputFileHandler(config)
+
+    # Generate list of dates and file paths
+    dates = Preprocessor.dates_to_list(config.start_date, config.end_date, config.interval_hours)
+    fcst_files, ref_files = Preprocessor.files_to_list(config.fcst_file_template, config.ref_file_template, dates, config.shift)
+
+    # Process in parallel
+    process_in_parallel(dates, fcst_files, ref_files, config, output)
+
+    # Close output file after processing
+    output.close_output_file()
+    sys.exit(0)
+
 
 def main():
     """Central command-line interface for VCasT."""
@@ -50,86 +125,38 @@ def main():
     )
     
     parser.add_argument(
-        "command_or_file",
+        "file_path",
         help=(
-            "Specify the operation (plot, convert, stats, check) or provide a file "
-            "(NetCDF, GRIB2, YAML) for automatic detection."
+            "Specify the input file (YAML, NetCDF, GRIB2) for processing. "
+            "The tool will automatically determine the required action."
         )
-    )
-
-    parser.add_argument(
-        "config",
-        type=str,
-        nargs="?",  # Make this optional in case of direct file input
-        help="Path to the YAML configuration file (not needed for direct file check)."
     )
 
     args = parser.parse_args()
 
-    # Check if the argument is a file
-    if os.path.isfile(args.command_or_file):
-        file_extension = os.path.splitext(args.command_or_file)[1].lower()
+    if not os.path.exists(args.file_path):
+        raise FileNotFoundError(f"File not found: {args.file_path}")
 
-        # If it's a NetCDF or GRIB2 file → Run `main_check.py`
-        if file_extension in [".nc", ".grib2"]:
-            print(f"Detected file '{args.command_or_file}' - Running check...")
-            file_type = identify_file_type(args.command_or_file)
+    # **Step 1: Try detecting YAML configuration**
+    action = detect_yaml_config(args.file_path)
+    if action == "convert":
+        handle_conversion(args.file_path)
+    elif action == "plot":
+        handle_plotting(args.file_path)
+    elif action == "stats":
+        handle_statistical_analysis(args.file_path)
+
+    # **Step 2: If not YAML, try checking if it's NetCDF or GRIB2**
+    print(f"Attempting to detect file format for: {args.file_path} ...")
     
-            print()
-            if file_type == "netcdf":
-                print("File type: NetCDF")
-                check_netcdf(args.command_or_file)
-            elif file_type == "grib2":
-                print("File type: GRIB2")
-                check_grib2(args.command_or_file)
-            else:
-                print(Fore.RED + "Unknown file type. Only NetCDF and GRIB2 are supported." + Style.RESET_ALL)
-            
-            print()
-            print("-"*10)
-            print(Fore.GREEN + "File passed check." + Style.RESET_ALL)
-            print("-"*10)
-        
-            print()
-            sys.exit(0)
+    fc = FileChecker(args.file_path)
+    file_type = fc.identify_file_type()
 
-        # If it's a YAML file → Check for conversion, plotting, or statistics
-        elif file_extension in [".yaml", ".yml"]:
-            action = detect_yaml_config(args.command_or_file)
-            if action == "convert":
-                print(f"Detected YAML configuration for METplus stat file - Extracting statistics...")
-                ReadStat(args.command_or_file)
-                sys.exit(0)
-            elif action == "plot":
-                print(f"Detected YAML configuration for plotting - Plotting...")
-                plot = Plot(args.command_or_file)
-                plot.plot()
-                sys.exit(0)
-            elif action == "stats":
-                print(f"Detected YAML configuration for statistical analysis - Running statistical analysis...")
-                start_time = time.time()
-  
-                print_intro()
-            
-                config = ConfigLoader(args.command_or_file)
+    if file_type == "netcdf" or file_type == "grib2":
+        handle_file_check(args.file_path)
 
-                output = OutputFileHandler(config)
-            
-                dates = dates_to_list(config.start_date, config.end_date,config.interval_hours)
-                fcst_files, ref_files = files_to_list(config.fcst_file_template, config.ref_file_template, dates, config.shift)
-                            
-                process_in_parallel(dates, fcst_files, ref_files, config, output)
-            
-                output.close_output_file()
-            
-                print_conclusion(start_time)
-                sys.exit(0)
-
-        else:
-            raise Exception(f"Unrecognized file type or unsupported YAML format: {args.command_or_file}")
-
-    else:
-        raise Exception(f"File not found: {args.command_or_file}")
+    # **Step 3: If it doesn't match anything, raise an error**
+    raise Exception(f"Unrecognized file type or unsupported format: {args.file_path}")
 
 
 if __name__ == "__main__":

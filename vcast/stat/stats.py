@@ -210,7 +210,7 @@ def compute_gss(hits, misses, false_alarms, total_events):
     
     return gss
 
-def calculate_fbias(hits, false_alarms, misses):
+def compute_fbias(hits, false_alarms, misses):
     """
     Calculate the Frequency Bias Index (FBIAS).
 

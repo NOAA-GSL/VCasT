@@ -1,26 +1,33 @@
-# __init__.py
+"""
+VCasT: Verification and Forecast Evaluation Tool
+------------------------------------------------
+VCasT is a library designed for weather model verification, providing tools for:
+- Statistical processing
+- Data handling and preprocessing
+- Parallel computation
+- Plot generation for visualization
 
-from vcast.interpolation import*
-from vcast.ioc import *
-from vcast.stats import *
-from vcast.parallel import *
-from vcast.plot_class import *
+Modules:
+- `io`: Handles input/output operations, config loading, and file checks.
+- `plot`: Implements plotting functions including performance and Taylor diagrams.
+- `processing`: Contains interpolation and parallel data processing.
+- `stat`: Provides statistical calculations and data aggregation.
+
+"""
+
+# Importing core functionalities for external use
+from .io import ConfigLoader, OutputFileHandler, FileChecker, Preprocessor
+from .plot import Plot
+from .processing import process_in_parallel, interpolate_to_target_grid
+from .stat import ReadStat
 
 __all__ = [
-    "interpolate_to_target_grid",
-    "PrepIO",
-    "format_file_template",
-    "identify_file_type",
-    "read_input_data",
-    "read_grib2",
-    "read_netcdf",
-    "compute_rmse",
-    "compute_bias",
-    "compute_qunatiles",
-    "compute_mae",
+    "ConfigLoader",
+    "OutputFileHandler",
+    "FileChecker",
+    "Preprocessor",
+    "Plot",
     "process_in_parallel",
-    "process_date_multiprocessing",
-    "dates_to_list",
-    "files_to_list",
+    "interpolate_to_target_grid",
+    "ReadStat"
 ]
-

@@ -167,7 +167,7 @@ class Preprocessor:
         Returns:
             str: Formatted file path.
         """
-        return template.format(
+        formatted_file_path = template.format(
             year=date_obj.year,
             month=f"{date_obj.month:02}",
             day=f"{date_obj.day:02}",
@@ -175,6 +175,8 @@ class Preprocessor:
             hour=f"{date_obj.hour:02}",
             minute=f"{date_obj.minute:02}",
         )
+        
+        return formatted_file_path
 
     @staticmethod
     def dates_to_list(start_date, end_date, interval_hours, date_format="%Y-%m-%d_%H:%M:%S"):

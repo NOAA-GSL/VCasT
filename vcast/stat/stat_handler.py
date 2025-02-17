@@ -1,15 +1,13 @@
 import pandas as pd
 import glob
 import vcast.stat.constants as cn
-from vcast.io import ConfigLoader
 from vcast.stat import AVAILABLE_LINE_TYPES
 
 class ReadStat:
-    def __init__(self, config_file):
+    def __init__(self, config):
         """
         Initialize the class with the configuration file.
         """
-        config = ConfigLoader(config_file)
 
         if config.line_type.lower() not in AVAILABLE_LINE_TYPES:
             raise Exception(f"Line type not {config.line_type} not recognized.")

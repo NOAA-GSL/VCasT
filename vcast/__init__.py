@@ -17,7 +17,6 @@ Modules:
 
 # Importing core functionalities for external use
 from .io import ConfigLoader, OutputFileHandler, FileChecker, Preprocessor
-from .plot import Plot
 from .processing import process_in_parallel, interpolate_to_target_grid
 from .stat import ReadStat
 
@@ -26,7 +25,6 @@ __all__ = [
     "OutputFileHandler",
     "FileChecker",
     "Preprocessor",
-    "Plot",
     "process_in_parallel",
     "interpolate_to_target_grid",
     "ReadStat"

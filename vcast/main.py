@@ -5,7 +5,7 @@ import yaml
 from colorama import Fore, Style  
 
 from vcast.stat import ReadStat
-from vcast.plot import Plot
+from vcast.plot import BasePlot, LinePlot
 from vcast.processing import process_in_parallel
 from vcast.io import ConfigLoader, OutputFileHandler, FileChecker, Preprocessor
 
@@ -69,41 +69,48 @@ def handle_file_check(file_path):
     sys.exit(0)
 
 
-def handle_conversion(file_path):
+def handle_conversion(config):
     """
     Handles conversion of METplus statistical files.
     
     Args:
         file_path (str): Path to the YAML configuration file.
     """
-    print(f"Processing METplus statistics from: {file_path} ...")
-    ReadStat(file_path)
+    print(f"Processing METplus statistics...")
+    ReadStat(config)
     sys.exit(0)
 
 
-def handle_plotting(file_path):
+def handle_plotting(config):
     """
     Handles plotting based on the YAML configuration.
     
     Args:
         file_path (str): Path to the YAML configuration file.
     """
-    print(f"Generating plot from: {file_path} ...")
-    plot = Plot(file_path)
-    plot.plot()
+    print(f"Generating plot...")
+    # plot = Plot(file_path)
+    # plot.plot()
+    
+    if config.plot_type == "line":
+        plt = LinePlot(config)
+    else:
+        raise Exception(Fore.RED + f"ERROR: Plot type {config.plot_type} is not supported." + Style.RESET_ALL)
+
+    plt.plot()
+
     sys.exit(0)
 
 
-def handle_statistical_analysis(file_path):
+def handle_statistical_analysis(config):
     """
     Handles statistical analysis using multiprocessing.
     
     Args:
         file_path (str): Path to the YAML configuration file.
     """
-    print(f"Running statistical analysis from: {file_path} ...")
+    print(f"Running statistical analysis...")
 
-    config = ConfigLoader(file_path)
     output = OutputFileHandler(config)
 
     # Generate list of dates and file paths
@@ -139,12 +146,14 @@ def main():
 
     # **Step 1: Try detecting YAML configuration**
     action = detect_yaml_config(args.file_path)
-    if action == "convert":
-        handle_conversion(args.file_path)
-    elif action == "plot":
-        handle_plotting(args.file_path)
-    elif action == "stats":
-        handle_statistical_analysis(args.file_path)
+    if action in ["convert", "plot","stats"]:
+        config = ConfigLoader(args.file_path)
+        if action == "convert":        
+            handle_conversion(config)
+        elif action == "plot":
+            handle_plotting(config)
+        elif action == "stats":
+            handle_statistical_analysis(config)
 
     # **Step 2: If not YAML, try checking if it's NetCDF or GRIB2**
     print(f"Attempting to detect file format for: {args.file_path} ...")

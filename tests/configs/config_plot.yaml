@@ -1,16 +1,16 @@
 plot_type: line
 vars:
-  - gss: "../test_agg.data"
-  - gss: "../test_agg.data"
-  - gss: "../test_agg.data"
-  - gss: "../test_agg.data"
-  - gss: "../test_agg.data"
-  - gss: "../test_agg.data"
-  - gss: "../test_agg.data"
-  - gss: "../test_agg.data"
-  - gss: "../test_agg.data"
-  - gss: "../test_agg.data"
-  - gss: "../test_agg_all.data"
+  - gss: "./control_outputs/test_agg.data"
+  - gss: "./control_outputs/test_agg.data"
+  - gss: "./control_outputs/test_agg.data"
+  - gss: "./control_outputs/test_agg.data"
+  - gss: "./control_outputs/test_agg.data"
+  - gss: "./control_outputs/test_agg.data"
+  - gss: "./control_outputs/test_agg.data"
+  - gss: "./control_outputs/test_agg.data"
+  - gss: "./control_outputs/test_agg.data"
+  - gss: "./control_outputs/test_agg.data"
+  - gss: "./control_outputs/test_agg_all.data"
 
 unique: model
 
@@ -83,7 +83,7 @@ line_width:
 - 1.2
 
 
-output_filename: GSS_APCP_03.png
+output_filename: ./GSS_APCP_03.png
 
 # Line plot variables
 x_label: "Lead Time"

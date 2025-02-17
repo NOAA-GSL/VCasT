@@ -8,6 +8,7 @@ Classes:
 - `Plot`: Handles different types of visualizations based on YAML configurations.
 """
 
-from .plot_class import Plot
+from .base_plot import BasePlot
+from .line_plot import LinePlot
 
-__all__ = ["Plot"]
+__all__ = ["BasePlot","LinePlot"]

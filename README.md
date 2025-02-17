@@ -1,6 +1,13 @@
-# Verification and Forecast Evaluation Tool (VCasT)
+# VCasT: Verification and Forecast Evaluation Tool
 
-A Python-based tool for calculating and visualizing forecast verification statistics such as RMSE, bias, quantiles, and more. This tool is designed for comparing model outputs against observations or references, supporting both GRIB2 and NetCDF file formats.
+[![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+
+VCasT (Verification and Forecast Evaluation Tool) is a library designed for weather model verification, providing tools for:
+
+- **Statistical processing**: Compute RMSE, MAE, correlation coefficients, and more.
+- **Data handling and preprocessing**: Read, process, and format data efficiently.
+- **Parallel computation**: Speed up analysis with multiprocessing capabilities.
+- **Plot generation for visualization**: Create performance and Taylor diagrams.
 
 ## Features
 
@@ -14,7 +21,7 @@ A Python-based tool for calculating and visualizing forecast verification statis
   - **POD (Probability of Detection)**: Measures the proportion of observed events correctly forecasted.
   - **FAR (False Alarm Ratio)**: Measures the proportion of forecasted events that did not occur.
   - **CSI (Critical Success Index)**: Combines hits, misses, and false alarms into a single metric.
-  - **Correlatio (CORR) and Standard Deviation (STDEV)**: Useful for Taylor Diagrams.
+  - **Correlation (CORR) and Standard Deviation (STDEV)**: Useful for Taylor Diagrams.
   - **Fractions Skill Score (FSS)**: Evaluates spatial forecasts by comparing fractions of grid points exceeding a threshold within a specified neighborhood.
 
 - **File Handling**:
@@ -26,133 +33,66 @@ A Python-based tool for calculating and visualizing forecast verification statis
   - **Performance Diagram**: Visualizes success ratio, POD, and CSI curves.
   - **Taylor Diagram**: Displays standard deviation, and correlation.
 
-- **Parallel Processing**: Supports multiprocessing for handling large datasets.
+## Modules
 
-- **Customizable Configuration**: Configure file paths, variables, metrics, and other settings via a YAML file.
+- `io`: Handles input/output operations, config loading, and file checks.
+- `plot`: Implements plotting functions including performance and Taylor diagrams.
+- `processing`: Contains interpolation and parallel data processing.
+- `stat`: Provides statistical calculations and data aggregation.
 
 ## Installation
 
-### Clone the repository
+To install VCasT, use:
 
 ```bash
-git clone https://github.com/VanderleiVargas-NOAA/ModelVerificationTool.git
-```
-
-### Install the package
-
-```bash
-cd ModelVerificationTool
+git clone git@github.com:VanderleiVargas-NOAA/VCasT.git
+cd VCasT
 pip install .
-export PYTHONPATH=`pwd`:${PYTHONPATH}
+export ${PYTHONPATH}:`pwd`
 ```
-
-This installs the `mvt_stat`, `mvt_plot`, and `mvt_check` packages.
-
----
 
 ## Usage
 
-### Command Line
+VCasT determines the required action based on the structure of the provided configuration file. The main actions include:
 
-#### Run checks
+- **File Checking**: Detects file type (NetCDF or GRIB2) and verifies compatibility.
+- **Statistical Extraction**: Extracts and processes statistical data from METplus stat files.
+- **Plotting**: Generates visualizations such as line plots based on configuration.
+- **Statistical Analysis**: Performs parallelized statistical computations on forecast data.
 
-```bash
-mvt_check file_path
-```
-
-This command checks if the file is supported by this library
-
-#### Run Statistics Calculation
+VCasT operates via command-line interface:
 
 ```bash
-mvt_stat config/config_mvt.yaml
+vcast config_file
+```
+The action taken depends on the structure of the specified configuration file.
+
+## Project Structure
+
+```
+VCasT/
+│── config/          # Configuration files
+│── tests/           # Unit tests
+│── util/            # Utility functions
+│── vcast/           # Core library files
+│── .gitignore       # Git ignore rules
+│── LICENSE          # License information
+│── README.md        # Project documentation
+│── requirements.txt # Dependencies
+│── setup.py         # Package installation script
 ```
 
-This command calculates metrics (e.g., RMSE, Bias, GSS) based on the configuration specified in the YAML file.
+## Contributing
 
-#### Generate Plots
+Contributions are welcome! Please follow these steps:
 
-```bash
-mvt_plot config/config_plot.yaml
-```
-
-This command generates visualizations like Taylor and Performance Diagrams.
-
-![Performance Diagram](https://raw.githubusercontent.com/VanderleiVargas-NOAA/ModelVerificationTool/develop/tests/examples/pd_refc.png "Performance Diagram Example")
-
-
----
-
-## Configuration
-
-### Example YAML Configuration for Statistics
-
-```yaml
-# Date and Time Settings
-start_date: "2024-04-01_02:00:00"    # Start processing from this date
-end_date: "2024-04-07_17:00:00"      # End processing on this date
-interval_hours: "1"                  # Time interval for data processing in hours
-
-# Forecast Configuration
-fcst_file_template: "/path/to/forecast/forecast_{year}-{month}-{day}T{hour}:00:00.nc"
-fcst_var: "WIND"                     # Variable to process in forecast files
-fcst_level: 1000                     # Specific level for the variable (if applicable)
-fcst_type_of_level: "level"          # Dimension name associated with levels
-shift: -1                            # Apply a time shift to align with observations
-
-# Reference Configuration
-ref_file_template: "/path/to/reference/obs_{year}{month}{day}/{cycle}/hrrr.t{hour}z.wrfprsf00.grib2"
-ref_var: "10si"                      # Variable to process in reference files
-ref_level: 10                        # Level for the reference variable
-ref_type_of_level: "heightAboveGround"  # Reference level type
-
-# Output Configuration
-output_dir: "/path/to/output_dir"    # Directory for storing output files
-output_filename: "output_file.txt"   # Name of the output file
-
-# Statistical Metrics to Compute
-stat_name:
-  - "rmse"
-  - "bias"
-  - "quantiles"
-  - "mae"
-  - "gss"
-
-# Variable Threshold and Radius
-var_threshold: 10                    # Threshold value for events
-var_radius: 10                       # Grid influence radius (0 for no influence)
-
-# Grid and Interpolation Settings
-interpolation: false                 # Whether to interpolate to a target grid
-target_grid: "fcst"                  # Target grid (e.g., forecast grid)
-
-# Parallel Processing
-processes: 200                       # Number of parallel processes
-```
-
-### Example YAML Configuration for Plots
-
-```yaml
-# Plot Configuration
-plot_type: "taylor_diagram"              # Choose the type of plot (e.g., taylor_diagram, performance_diagram, time_series)
-plot_title: "Taylor Diagram Example"     # Title of the plot
-input_files:                             # List of files containing data for the plot
-  - "output/statistics_1.csv"
-  - "output/statistics_2.csv"
-labels:                                  # Labels for each dataset in the plot
-  - "Model 1"
-  - "Model 2"
-line_color:                              # Line colors for each dataset
-  - "blue"
-  - "red"
-line_marker:                             # Marker styles for each dataset
-  - "o"
-  - "x"
-output_filename: "taylor_diagram.png"    # File name to save the plot
-```
-
----
+1. Fork the repository
+2. Create a new branch (`git checkout -b feature-branch`)
+3. Commit your changes (`git commit -m "Add feature"`)
+4. Push to the branch (`git push origin feature-branch`)
+5. Open a Pull Request
 
 ## License
 
-This project is licensed under the MIT License. See the LICENSE file for details.
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+

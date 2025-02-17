@@ -1,0 +1,96 @@
+plot_type: line
+vars:
+  - gss: "./control_outputs/test_agg.data"
+  - gss: "./control_outputs/test_agg.data"
+  - gss: "./control_outputs/test_agg.data"
+  - gss: "./control_outputs/test_agg.data"
+  - gss: "./control_outputs/test_agg.data"
+  - gss: "./control_outputs/test_agg.data"
+  - gss: "./control_outputs/test_agg.data"
+  - gss: "./control_outputs/test_agg.data"
+  - gss: "./control_outputs/test_agg.data"
+  - gss: "./control_outputs/test_agg.data"
+  - gss: "./control_outputs/test_agg_all.data"
+
+unique: model
+
+# General plot parameters
+plot_title: APCP_03
+legend_title: Model
+labels:
+- "mem01"
+- "mem02"
+- "mem03"
+- "mem04"
+- "mem05"
+- "mem06"
+- "mem07"
+- "mem08"
+- "mem09"
+- "mem10"
+- "average"
+
+line_color:
+- "green"
+- "red"
+- "blue"
+- "orange"
+- "purple"
+- "cyan"
+- "blue"
+- "orange"
+- "purple"
+- "cyan"
+- "black"
+
+line_marker:
+- "o"
+- "^"
+- "s"
+- "p"
+- "*"
+- "h"
+- "d"
+- "v"
+- "8"
+- "<"
+- "o"
+
+line_type:
+- "-"
+- "--"
+- "-."
+- ":"
+- "-"
+- "--"
+- "-."
+- ":"
+- "-"
+- "--"
+- "-"
+
+line_width:
+- 1
+- 1
+- 1
+- 1
+- 1
+- 1
+- 1
+- 1
+- 1
+- 1
+- 1.2
+
+
+output_filename: ./GSS_APCP_03.png
+
+# Line plot variables
+x_label: "Lead Time"
+y_label: "GSS"
+ylim: [0,0.6]
+xlim: 
+grid: true
+yticks: [0.1,0.2,0.3,0.4,0.5,0.6]
+xticks: 
+

@@ -36,12 +36,12 @@ def process_date_multiprocessing(date, fcst_file, ref_file, config):
             flons += 360.
 
         # Apply interpolation if enabled
-        interpolated_data = ref_data
         if config.interpolation:
-            if config.target_grid == 'fcst':
-                interpolated_data = interpolate_to_target_grid(ref_data, rlats, rlons, flats, flons)
-            else:
-                raise ValueError("Unknown target_grid value.")
+            fcst_interpolated_data = interpolate_to_target_grid(fcst_data, flats, flons, config.target_grid) 
+            ref_interpolated_data = interpolate_to_target_grid(ref_data, rlats, rlons, config.target_grid)
+        else:
+            fcst_interpolated_data = fcst_data
+            ref_interpolated_data = ref_data
 
         # Compute statistics
         stats = [date]
@@ -49,22 +49,22 @@ def process_date_multiprocessing(date, fcst_file, ref_file, config):
 
         if any(stat in ustat_name for stat in ["gss", "fbias", "pod", "far", "csi", "sr"]):
             hits, misses, false_alarms, correct_rejections, total_events = compute_scores(
-                fcst_data, interpolated_data, config.var_threshold, config.var_radius
+                fcst_interpolated_data, ref_interpolated_data, config.var_threshold, config.var_radius
             )
 
         # Add computed statistics
         if 'rmse' in ustat_name:
-            stats.append(compute_rmse(fcst_data, interpolated_data))
+            stats.append(compute_rmse(fcst_interpolated_data, ref_interpolated_data))
         if 'bias' in ustat_name:
-            stats.append(compute_bias(fcst_data, interpolated_data))
+            stats.append(compute_bias(fcst_interpolated_data, ref_interpolated_data))
         if 'quantiles' in ustat_name:
-            stats.extend(compute_quantiles(fcst_data, interpolated_data))
+            stats.extend(compute_quantiles(fcst_interpolated_data, ref_interpolated_data))
         if 'mae' in ustat_name:
-            stats.append(compute_mae(fcst_data, interpolated_data))
+            stats.append(compute_mae(fcst_interpolated_data, ref_interpolated_data))
         if 'corr' in ustat_name:
-            stats.append(compute_correlation(fcst_data, interpolated_data))
+            stats.append(compute_correlation(fcst_interpolated_data, ref_interpolated_data))
         if 'stdev' in ustat_name:
-            stats.append(compute_stdev(fcst_data, interpolated_data))
+            stats.append(compute_stdev(fcst_interpolated_data, ref_interpolated_data))
         if 'gss' in ustat_name:
             stats.append(compute_gss(hits, misses, false_alarms, total_events))
         if 'fbias' in ustat_name:
@@ -78,7 +78,7 @@ def process_date_multiprocessing(date, fcst_file, ref_file, config):
         if 'sr' in ustat_name:
             stats.append(compute_success_ratio(hits, false_alarms))
         if 'fss' in ustat_name:
-            stats.append(compute_fss(fcst_data, interpolated_data, config.var_threshold, config.var_radius))
+            stats.append(compute_fss(fcst_interpolated_data, ref_interpolated_data, config.var_threshold, config.var_radius))
 
         return stats
 

@@ -38,8 +38,13 @@ class Preprocessor:
         else:
             raise Exception("Error: File format unknown.")
         
+        if lats.ndim == 1 and lons.ndim == 1:
+            lon_grid, lat_grid = np.meshgrid(lons, lats)
+        else:
+            lat_grid, lon_grid = lats, lons
+        
         data = np.squeeze(data)
-        return data, lats, lons, stype
+        return data, lat_grid, lon_grid, stype
     
     @staticmethod
     def read_grib2(grib2_file, var_name, type_of_level, level):

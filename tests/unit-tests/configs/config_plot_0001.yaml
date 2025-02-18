@@ -83,7 +83,7 @@ line_width:
 - 1.2
 
 
-output_filename: ./GSS_APCP_03.png
+output_filename: ./plot-0001.png
 
 # Line plot variables
 x_label: "Lead Time"

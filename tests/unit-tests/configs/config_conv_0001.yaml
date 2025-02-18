@@ -32,13 +32,13 @@ columns_to_keep: #["fcst_valid_beg", "model", "fcst_thresh", "obs_thresh", "line
 
 # Whether to save the reformatted DataFrame to a file
 reformat_file: true  # Set to false to disable writing the file
-output_reformat_file: "./filtered_output.data"  # Path to save output
+output_reformat_file: "./filtered_output-0001.data"  # Path to save output
 
 # Extract variables for plotting
 stat_vars: ["fbias","gss"]
 output_file: true  # Set to false to disable writing the file
-output_plot_file: "./agg.data"  # Path to save output
+output_plot_file: "./output-0001.data"  # Path to save output
 
 aggregate: true
-group_by: ["fcst_lead"]
-output_agg_file: "./test_agg_all.data"  # Path to save output
+group_by: ["model","fcst_lead"]
+output_agg_file: "./agg-0001.data"  # Path to save output

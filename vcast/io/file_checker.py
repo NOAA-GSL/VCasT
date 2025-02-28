@@ -3,6 +3,7 @@ import warnings
 import pygrib
 from netCDF4 import Dataset
 from colorama import Fore, Style
+import xarray as xr
 
 class FileChecker:
     """
@@ -18,20 +19,32 @@ class FileChecker:
 
     def identify_file_type(self):
         """
-        Determines whether the file is NetCDF or GRIB2.
-
+        Determines whether the file is NetCDF, GRIB2, or Zarr.
+    
         Returns:
-            str: 'netcdf', 'grib2', or 'unknown'
+            str: 'netcdf', 'grib2', 'zarr', or 'unknown'
         """
         if not os.path.exists(self.file_path):
             raise FileNotFoundError(f"File {self.file_path} does not exist.")
-
+    
+        # If the path is a directory, attempt to open it as a Zarr dataset.
+        if os.path.isdir(self.file_path):
+            try:
+                ds = xr.open_zarr(self.file_path,decode_timedelta=True)
+                ds.close()
+                return 'zarr'
+            except Exception:
+                # If opening as Zarr fails, continue checking other formats.
+                pass
+    
+        # Try opening as NetCDF
         try:
             with Dataset(self.file_path, 'r'):
                 return 'netcdf'
         except Exception:
             pass
-
+    
+        # Try opening as GRIB2
         try:
             with pygrib.open(self.file_path):
                 return 'grib2'

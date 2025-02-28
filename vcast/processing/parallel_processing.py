@@ -6,6 +6,7 @@ from vcast.stat import compute_bias, compute_correlation, compute_csi, compute_f
                        compute_scores,compute_stdev,compute_success_ratio, compute_fbias
 from vcast.io import Preprocessor
 import traceback
+from datetime import timedelta
 
 def process_date_multiprocessing(date, fcst_file, ref_file, config):
     """
@@ -21,12 +22,14 @@ def process_date_multiprocessing(date, fcst_file, ref_file, config):
         list: Processed statistics for the given date.
     """
     try:
+
+        ref_date = date + timedelta(hours=config.shift)
         # Read forecast and reference data
         fcst_data, flats, flons, ftype = Preprocessor.read_input_data(
-            fcst_file, config.fcst_var, config.fcst_type_of_level, config.fcst_level
+            fcst_file, config.fcst_var, config.fcst_type_of_level, config.fcst_level, date
         )
         ref_data, rlats, rlons, rtype = Preprocessor.read_input_data(
-            ref_file, config.ref_var, config.ref_type_of_level, config.ref_level
+            ref_file, config.ref_var, config.ref_type_of_level, config.ref_level, ref_date
         )
 
         # Adjust longitude ranges if necessary
@@ -51,10 +54,16 @@ def process_date_multiprocessing(date, fcst_file, ref_file, config):
             hits, misses, false_alarms, correct_rejections, total_events = compute_scores(
                 fcst_interpolated_data, ref_interpolated_data, config.var_threshold, config.var_radius
             )
+        
+        if config.threshold == "" or config.threshold is None:
+            threshold = None
+        else:
+            threshold = config.threshold
+
 
         # Add computed statistics
         if 'rmse' in ustat_name:
-            stats.append(compute_rmse(fcst_interpolated_data, ref_interpolated_data))
+            stats.append(compute_rmse(fcst_interpolated_data, ref_interpolated_data, threshold))
         if 'bias' in ustat_name:
             stats.append(compute_bias(fcst_interpolated_data, ref_interpolated_data))
         if 'quantiles' in ustat_name:

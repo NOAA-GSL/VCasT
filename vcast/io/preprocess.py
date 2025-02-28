@@ -2,13 +2,13 @@ from vcast.io import FileChecker
 from datetime import datetime, timedelta
 import numpy as np
 import pygrib
-from netCDF4 import Dataset
+import xarray as xr
 
 class Preprocessor:
     """Handles input/output file preparation and date formatting."""
 
     @staticmethod
-    def read_input_data(input_file, var_name, type_of_level, level):
+    def read_input_data(input_file, var_name, type_of_level, level, date):
         """
         Reads forecast or observation data from a given input file.
 
@@ -28,13 +28,17 @@ class Preprocessor:
         Raises:
             Exception: If the file format is unknown or unsupported.
         """
+        stime = date.strftime("%Y-%m-%dT%H:%M:%S")
         fc = FileChecker(input_file)        
         if 'netcdf' in fc.identify_file_type():
             data, lats, lons = Preprocessor.read_netcdf(input_file, var_name, type_of_level, level)   
             stype = 'netcdf'
         elif 'grib2' in fc.identify_file_type():
-            data, lats, lons = Preprocessor.read_grib2(input_file,var_name, type_of_level, level)
+            data, lats, lons = Preprocessor.read_grib2(input_file, var_name, type_of_level, level)
             stype = 'grib2'
+        elif 'zarr' in fc.identify_file_type():
+            data, lats, lons = Preprocessor.read_zarr(input_file, var_name, type_of_level, level, stime)
+            stype = 'zarr'            
         else:
             raise Exception("Error: File format unknown.")
         
@@ -86,10 +90,93 @@ class Preprocessor:
             raise RuntimeError(f"Error reading GRIB2 file '{grib2_file}': {e}") from e
 
     @staticmethod
-    def read_netcdf(netcdf_file, var_name, type_of_level, level):
+    def read_zarr(zarr_folder, var_name, type_of_level=None, level=None, time=None):
         """
-        Reads a NetCDF file and extracts the specified variable data along with latitude and longitude arrays.
-        Handles cases where the type_of_level dimension is absent for surface fields.
+        Reads a Zarr dataset using xarray and extracts the specified variable data 
+        along with latitude and longitude arrays. Handles cases where the type_of_level 
+        dimension is absent for surface fields. Optionally selects a specific time 
+        if multiple time steps are available.
+    
+        Parameters:
+        - zarr_folder (str): Path to the Zarr folder.
+        - var_name (str): Name of the variable to extract.
+        - type_of_level (str, optional): Name of the dimension (e.g., 'level').
+        - level (int or float, optional): Specific level value to extract (if applicable).
+        - time (str or np.datetime64, optional): Specific time to select. If provided and the dataset
+          contains a time coordinate, the data is selected at the nearest time step.
+    
+        Returns:
+        - data (numpy.ndarray): Variable data array.
+        - lats (numpy.ndarray): Latitude array.
+        - lons (numpy.ndarray): Longitude array.
+    
+        Raises:
+        - ValueError: If the variable or necessary coordinates (or time coordinate when required) are not found.
+        - RuntimeError: If an error occurs while reading the Zarr dataset.
+        """
+        try:
+            # Open the Zarr dataset using xarray
+            ds = xr.open_zarr(zarr_folder,decode_timedelta=True)
+            
+            # If time selection is requested and the dataset has a time coordinate, subset it first.
+            if time is not None:
+                if 'time' in ds:
+                    ds = ds.sel(time=time, method="nearest")
+                else:
+                    raise ValueError("Time coordinate not found in Zarr dataset.")
+    
+            # Ensure the variable exists
+            if var_name not in ds:
+                raise ValueError(f"Variable '{var_name}' not found in Zarr dataset. Available variables: {list(ds.data_vars.keys())}")
+    
+            # Extract latitude and longitude arrays
+            if 'latitude' in ds:
+                lats = ds['latitude'].values
+            elif 'lat' in ds:
+                lats = ds['lat'].values
+            else:
+                raise ValueError("Latitude variable not found in Zarr dataset.")
+    
+            if 'longitude' in ds:
+                lons = ds['longitude'].values
+            elif 'lon' in ds:
+                lons = ds['lon'].values
+            else:
+                raise ValueError("Longitude variable not found in Zarr dataset.")
+    
+            # Extract variable data
+            var_data = ds[var_name]
+    
+            # Check if the level dimension exists in the dataset
+            if type_of_level and type_of_level in var_data.dims:
+                if level is not None:
+                    if type_of_level in ds:
+                        level_values = ds[type_of_level].values
+                        if level not in level_values:
+                            raise ValueError(f"Level '{level}' not found in dimension '{type_of_level}'. Available levels: {level_values}")
+                        
+                        # Select the specified level
+                        data = var_data.sel({type_of_level: level}).values
+                    else:
+                        raise ValueError(f"Level dimension '{type_of_level}' not found in dataset.")
+                else:
+                    raise ValueError("Level must be specified for non-surface fields.")
+            else:
+                # Assume surface field (no level dimension)
+                data = var_data.values
+    
+            return data, lats, lons
+    
+        except Exception as e:
+            raise RuntimeError(f"Error reading Zarr dataset at '{zarr_folder}': {e}") from e
+
+
+    @staticmethod
+    def read_netcdf(netcdf_file, var_name, type_of_level=None, level=None):
+        """
+        Reads a NetCDF file using xarray and extracts the specified variable data 
+        along with latitude and longitude arrays. Handles cases where the type_of_level 
+        dimension is absent for surface fields.
     
         Parameters:
         - netcdf_file (str): Path to the NetCDF file.
@@ -104,56 +191,56 @@ class Preprocessor:
     
         Raises:
         - ValueError: If the variable or necessary coordinates are not found.
+        - RuntimeError: If an error occurs while reading the NetCDF file.
         """
         try:
-            # Open the NetCDF file
-            nc = Dataset(netcdf_file, mode='r')
+            # Open the NetCDF file using xarray
+            ds = xr.open_dataset(netcdf_file)
     
-            # Check if the variable exists
-            if var_name not in nc.variables:
-                raise ValueError(f"Variable '{var_name}' not found in NetCDF file. Available variables: {list(nc.variables.keys())}")
+            # Ensure the variable exists
+            if var_name not in ds:
+                raise ValueError(f"Variable '{var_name}' not found in NetCDF file. Available variables: {list(ds.data_vars.keys())}")
     
             # Extract latitude and longitude arrays
-            if 'latitude' in nc.variables:
-                lats = nc.variables['latitude'][:]
-            elif 'lat' in nc.variables:
-                lats = nc.variables['lat'][:]
+            if 'latitude' in ds:
+                lats = ds['latitude'].values
+            elif 'lat' in ds:
+                lats = ds['lat'].values
             else:
                 raise ValueError("Latitude variable not found in NetCDF file.")
     
-            if 'longitude' in nc.variables:
-                lons = nc.variables['longitude'][:]
-            elif 'lon' in nc.variables:
-                lons = nc.variables['lon'][:]
+            if 'longitude' in ds:
+                lons = ds['longitude'].values
+            elif 'lon' in ds:
+                lons = ds['lon'].values
             else:
                 raise ValueError("Longitude variable not found in NetCDF file.")
     
-            # Get the dimensions of the variable
-            variable_dimensions = nc.variables[var_name].dimensions
+            # Extract variable data
+            var_data = ds[var_name]
     
-            has_dimension = type_of_level in variable_dimensions
-    
-            if has_dimension:
-                # Check if type_of_level is specified and exists in the NetCDF file
-                if type_of_level and type_of_level in nc.variables:
-                    level_array = nc.variables[type_of_level][:]
-                    if level is not None:
-                        # Find the index of the specified level
-                        level_index = np.where(level_array == level)[0]
-                        if level_index.size == 0:
-                            raise ValueError(f"Level '{level}' not found in dimension '{type_of_level}'. Available levels: {level_array}")
-        
-                        # Extract data at the specified level
-                        data = nc.variables[var_name][level_index[0], ...]
+            # Check if the level dimension exists in the dataset
+            if type_of_level and type_of_level in var_data.dims:
+                if level is not None:
+                    # Ensure the level exists
+                    if type_of_level in ds:
+                        level_values = ds[type_of_level].values
+                        if level not in level_values:
+                            raise ValueError(f"Level '{level}' not found in dimension '{type_of_level}'. Available levels: {level_values}")
+                        
+                        # Select the specified level
+                        data = var_data.sel({type_of_level: level}).values
                     else:
-                        raise ValueError("Level must be specified for non-surface fields.")
+                        raise ValueError(f"Level dimension '{type_of_level}' not found in dataset.")
+                else:
+                    raise ValueError("Level must be specified for non-surface fields.")
             else:
                 # Assume surface field (no level dimension)
-                data = nc.variables[var_name][...]
+                data = var_data.values
     
-            # Close the NetCDF file
-            nc.close()
-    
+            # Close the dataset
+            ds.close()
+
             return data, lats, lons
     
         except Exception as e:

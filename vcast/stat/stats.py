@@ -1,31 +1,82 @@
 import numpy as np
 from scipy.ndimage import convolve
 
-def compute_rmse(forecast_values, reference_values):
+def apply_threshold_mask(forecast_values, reference_values, threshold=None):
     """
-    Calculate the Root Mean Square Error (RMSE) between forecast values and reference values.
+    Apply a threshold mask to filter data points based on forecast values.
+    
+    If a threshold is provided, only data points where the reference values are greater than 
+    or equal to the threshold are kept.
 
     Parameters:
-    forecast_values (np.ndarray): Forecasted values of shape (n, m).
-    reference_values (np.ndarray): Reference values of shape (n, m).
+        forecast_values (np.ndarray): Forecasted values of shape (n, m).
+        reference_values (np.ndarray): Reference (observed) values of shape (n, m).
+        threshold (float, optional): A threshold value. Data points in the reference array below this 
+            threshold are ignored.
 
     Returns:
-    float: The RMSE value.
+        tuple: Filtered forecast_values and reference_values, or (None, None) if no valid points exist.
 
     Raises:
-    ValueError: If the shapes of the inputs do not match.
+        ValueError: If the shapes of the inputs do not match.
     """
-    # Check if the shapes match
     if forecast_values.shape != reference_values.shape:
         raise ValueError("Forecast values and reference values must have the same shape.")
 
-    # Calculate RMSE
-    differences = forecast_values - reference_values
-    squared_differences = np.square(differences)
-    mean_squared_error = np.mean(squared_differences)
-    rmse = np.sqrt(mean_squared_error)
+    if threshold is not None:
+        mask = forecast_values >= threshold  # Apply threshold only on reference values
+        if not np.any(mask):
+            return None, None  # No valid data points remain after filtering
+        return forecast_values[mask], reference_values[mask]
 
-    return rmse
+    return forecast_values, reference_values
+
+def compute_mse(forecast_values, reference_values, threshold=None):
+    """
+    Compute the Mean Squared Error (MSE) between forecast values and reference values.
+    
+    If a threshold is provided, only data points where the reference values are greater than 
+    or equal to the threshold are used in the calculation.
+    
+    Parameters:
+        forecast_values (np.ndarray): Forecasted values of shape (n, m).
+        reference_values (np.ndarray): Reference (observed) values of shape (n, m).
+        threshold (float, optional): A threshold value. Data points in the reference array below this 
+            threshold are ignored.
+
+    Returns:
+        float or np.nan: The MSE value, or np.nan if no valid data points exist.
+    """
+    forecast_values, reference_values = apply_threshold_mask(forecast_values, reference_values, threshold)
+
+    if forecast_values is None or reference_values is None:
+        return np.nan  # Return np.nan if no valid data points remain
+
+    # Compute MSE
+    differences = forecast_values - reference_values
+    mse = np.mean(np.square(differences))
+
+    return mse
+
+def compute_rmse(forecast_values, reference_values, threshold=None):
+    """
+    Calculate the Root Mean Square Error (RMSE) between forecast values and reference values.
+    
+    If a threshold is provided, only data points where the reference values are greater than 
+    or equal to the threshold are used in the calculation.
+    
+    Parameters:
+        forecast_values (np.ndarray): Forecasted values of shape (n, m).
+        reference_values (np.ndarray): Reference (observed) values of shape (n, m).
+        threshold (float, optional): A threshold value. Data points in the reference array below this 
+            threshold are ignored.
+            
+    Returns:
+        float or np.nan: The RMSE value, or np.nan if no valid data points exist.
+    """
+    mse = compute_mse(forecast_values, reference_values, threshold)
+
+    return np.sqrt(mse) if not np.isnan(mse) else np.nan
 
 def compute_bias(forecast_values, reference_values):
     """

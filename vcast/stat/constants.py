@@ -83,7 +83,7 @@ LINE_TYPE_COLUMNS = {
             "seds", "seds_ncl", "seds_ncu", "seds_bcl", "seds_bcu",
             "edi", "edi_ncl", "edi_ncu", "edi_bcl", "edi_bcu",
             "sedi", "sedi_ncl", "sedi_ncu", "sedi_bcl", "sedi_bcu",
-            "bagss", "bagss_bcl", "bagss_bcu"],
+            "bagss", "bagss_bcl", "bagss_bcu", "hss_ec", "hss_ec_bcl", "hss_ec_bcu", "ec_value"],
     "cnt": ["total", "fbar", "fbar_ncl", "fbar_ncu", "fbar_bcl", "fbar_bcu",
             "fstdev", "fstdev_ncl", "fstdev_ncu", "fstdev_bcl", "fstdev_bcu",
             "obar", "obar_ncl", "obar_ncu", "obar_bcl", "obar_bcu",
@@ -151,7 +151,7 @@ LINE_TYPE_COLUMNS = {
              "hss_ec", "hss_ec_bcl", "hss_ec_bcu",
              "ec_value"],
     "pct": ["total", "n_thresh"] +
-           [item for i in range(1, 100) for item in (f"thresh_{i}", f"oy_{i}", f"on_{i}")] +
+           [item for i in range(1, 12) for item in (f"thresh_{i}", f"oy_{i}", f"on_{i}")] +
            ["thresh_n"],
     "pstd": ["total", "n_thresh",
              "baser", "baser_ncl", "baser_ncu",
@@ -160,8 +160,7 @@ LINE_TYPE_COLUMNS = {
              "brier", "brier_ncl", "brier_ncu",
              "briercl", "briercl_ncl", "briercl_ncu",
              "bss", "bss_smpl"] +
-            [f"thresh_{i}" for i in range(1, 100)] +
-            ["thresh_n"],
+            [f"thresh_{i}" for i in range(1, 13)],
     "pjc": ["total", "n_thresh"] +
            [item for i in range(1, 100) for item in (f"thresh_{i}", f"oy_tp_{i}", f"on_tp_{i}",
                                                      f"calibration_{i}", f"refinement_{i}", 

@@ -99,10 +99,11 @@ class ReadStat:
                 # Split the line into columns (handling multiple spaces)
                 row_data = line.split()
                
-                # Ensure the line has enough columns before proceeding
-                if len(row_data) == len(headers):
-                    # Check if the line contains the specific line type
-                    if row_data[headers.index("line_type")].lower() == line_type.lower():
+                # Check if the line contains the specific line type
+                if row_data[headers.index("line_type")].lower() == line_type.lower():
+                    # Ensure the line has enough columns before proceeding
+
+                    if len(row_data) == len(headers):
                         # Convert to dictionary mapping headers to row values
                         row_dict = dict(zip(headers, row_data[:len(headers)]))
                         matching_rows.append(row_dict)

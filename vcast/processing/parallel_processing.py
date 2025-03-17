@@ -23,13 +23,13 @@ def process_date_multiprocessing(date, fcst_file, ref_file, config):
     """
     try:
 
-        ref_date = date + timedelta(hours=config.shift)
+        fcst_date = date + timedelta(hours=config.shift)
         # Read forecast and reference data
         fcst_data, flats, flons, ftype = Preprocessor.read_input_data(
-            fcst_file, config.fcst_var, config.fcst_type_of_level, config.fcst_level, date
+            fcst_file, config.fcst_var, config.fcst_type_of_level, config.fcst_level, fcst_date
         )
         ref_data, rlats, rlons, rtype = Preprocessor.read_input_data(
-            ref_file, config.ref_var, config.ref_type_of_level, config.ref_level, ref_date
+            ref_file, config.ref_var, config.ref_type_of_level, config.ref_level, date
         )
 
         # Adjust longitude ranges if necessary
@@ -65,7 +65,7 @@ def process_date_multiprocessing(date, fcst_file, ref_file, config):
         if 'rmse' in ustat_name:
             stats.append(compute_rmse(fcst_interpolated_data, ref_interpolated_data, threshold))
         if 'bias' in ustat_name:
-            stats.append(compute_bias(fcst_interpolated_data, ref_interpolated_data))
+            stats.append(compute_bias(fcst_interpolated_data, ref_interpolated_data, threshold))
         if 'quantiles' in ustat_name:
             stats.extend(compute_quantiles(fcst_interpolated_data, ref_interpolated_data))
         if 'mae' in ustat_name:

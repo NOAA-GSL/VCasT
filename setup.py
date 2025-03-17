@@ -18,6 +18,8 @@ setup(
         "argparse",
         "pandas",
         "matplotlib",
+        "colorama",
+        "xarray"
     ],
     python_requires=">=3.6",  
     classifiers=[

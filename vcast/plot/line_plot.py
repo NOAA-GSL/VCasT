@@ -60,6 +60,11 @@ class LinePlot(BasePlot):
             for var, file in var_dict.items():
                 # Load data (assuming tab-separated values)
                 data = pd.read_csv(file, sep="\t")
+                
+                if self.config.fcst_var is not None:
+                    data = data[data["fcst_var"] == self.config.fcst_var]
+                    if len(data) == 0:
+                        raise Exception(f"No data found for fcst_var = {self.config.fcst_var}")
         
                 # Handle unique grouping if applicable
                 if self.config.unique is not None:
@@ -71,6 +76,10 @@ class LinePlot(BasePlot):
                         else:
                             raise IndexError(f"Index {i} out of bounds for unique values in {self.config.unique}.")
         
+                # Check that the variable exists in the merged DataFrame.
+                if var not in data.columns:
+                    raise ValueError(f"Variable '{var}' not found in the file {file}.")
+                        
                 # Build x-values: Always use date
                 if "date" in data.columns:
                     # Convert the date column using the expected format (adjust format if needed)
@@ -86,25 +95,26 @@ class LinePlot(BasePlot):
                     merged = pd.merge(complete_df, data, on="date", how="left")
                     # x_values are the complete date column converted to matplotlib's date numbers.
                     x_values = mdates.date2num(merged["date"])
+                elif "fcst_lead" in data.columns:
+                    x_values = data["fcst_lead"].astype(int).tolist()
+                    if np.mean(x_values) > 10000:
+                        x_values = [val / 10000 for val in x_values]
                 else:
                     raise ValueError(f"'date' column not found in the file {file}.")
         
-                # Check that the variable exists in the merged DataFrame.
-                if var not in merged.columns:
-                    raise ValueError(f"Variable '{var}' not found in the file {file}.")
-        
                 # Extract y-values from the merged DataFrame.
-                y_values = merged[var]
-        
+                y_values = data[var]
+
                 # Optionally set custom x-ticks if provided.
                 if self.config.xticks:
                     custom_xticks = [x_values[j] for j in self.config.xticks if j < len(x_values)]
                     self.ax.set_xticks(custom_xticks)
         
+                
                 # Set x-axis limits if provided.
                 if self.config.xlim:
                     self.ax.set_xlim(x_values[self.config.xlim[0]], x_values[self.config.xlim[1]])
-        
+                
                 self.ax.plot(
                     x_values, y_values * self.config.scale,
                     color=self.config.line_color[i],

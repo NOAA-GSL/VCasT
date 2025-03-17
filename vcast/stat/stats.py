@@ -78,29 +78,34 @@ def compute_rmse(forecast_values, reference_values, threshold=None):
 
     return np.sqrt(mse) if not np.isnan(mse) else np.nan
 
-def compute_bias(forecast_values, reference_values):
+def compute_bias(forecast_values, reference_values, threshold=None):
     """
-    Calculate the bias between forecast values and reference values.
-
+    Compute the Bias between forecast values and reference values.
+    
+    Bias is defined as the mean difference between forecast and reference values.
+    If a threshold is provided, only data points where the reference values are greater than 
+    or equal to the threshold are used in the calculation.
+    
     Parameters:
-    forecast_values (np.ndarray): Forecasted values of shape (n, m).
-    reference_values (np.ndarray): Reference values of shape (n, m).
+        forecast_values (np.ndarray): Forecasted values of shape (n, m).
+        reference_values (np.ndarray): Reference (observed) values of shape (n, m).
+        threshold (float, optional): A threshold value. Data points in the reference array below this 
+            threshold are ignored.
 
     Returns:
-    float: The bias value.
-
-    Raises:
-    ValueError: If the shapes of the inputs do not match.
+        float or np.nan: The bias value (mean difference), or np.nan if no valid data points exist.
     """
-    # Check if the shapes match
-    if forecast_values.shape != reference_values.shape:
-        raise ValueError("Forecast values and reference values must have the same shape.")
+    forecast_values, reference_values = apply_threshold_mask(forecast_values, reference_values, threshold)
 
-    # Calculate bias
+    if forecast_values is None or reference_values is None:
+        return np.nan  # Return np.nan if no valid data points remain
+
+    # Compute bias as the mean of the differences (forecast - reference)
     differences = forecast_values - reference_values
     bias = np.mean(differences)
 
     return bias
+
 
 def compute_quantiles(forecast_values, reference_values):
     """

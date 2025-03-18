@@ -5,7 +5,7 @@ import yaml
 from colorama import Fore, Style  
 
 from vcast.stat import ReadStat
-from vcast.plot import LinePlot, Reliability
+from vcast.plot import LinePlot, Reliability, PerformanceDiagram
 from vcast.processing import process_in_parallel
 from vcast.io import ConfigLoader, OutputFileHandler, FileChecker, Preprocessor
 
@@ -96,6 +96,8 @@ def handle_plotting(config):
         plt = LinePlot(config)
     elif config.plot_type == "reliability":
         plt = Reliability(config)
+    elif config.plot_type == "performance_diagram":
+        plt = PerformanceDiagram(config)
     else:
         raise Exception(Fore.RED + f"ERROR: Plot type {config.plot_type} is not supported." + Style.RESET_ALL)
 

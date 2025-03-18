@@ -106,18 +106,6 @@ class Reliability(BasePlot):
             label="Perfect Reliability"
         )
 
-    def get_x_values(self, data):
-        """
-        Determine x-axis values based on 'date' or 'fcst_lead'.
-        """
-        if "date" in data.columns:
-            dates = pd.to_datetime(data["date"])
-            return mdates.date2num(dates)
-        elif "fcst_lead" in data.columns:
-            return pd.to_numeric(data["fcst_lead"], errors="coerce").astype("Int64")
-        else:
-            raise ValueError("No valid x-axis column found.")
-
     def plot(self):
         self.setup_plot()
         self.add_lines()

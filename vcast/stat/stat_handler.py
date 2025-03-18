@@ -2,6 +2,8 @@ import pandas as pd
 import glob
 import vcast.stat.constants as cn
 from vcast.stat import AVAILABLE_LINE_TYPES
+import numpy as np
+import logging
 
 class ReadStat:
     def __init__(self, config):
@@ -9,29 +11,36 @@ class ReadStat:
         Initialize the class with the configuration file.
         """
 
+        # Configure the logging system
+        logging.basicConfig(
+            level=logging.WARNING,
+            format='%(asctime)s - %(levelname)s - %(message)s'
+        )
+
         if config.line_type.lower() not in AVAILABLE_LINE_TYPES:
             raise Exception(f"Line type not {config.line_type} not recognized.")
         
         sfiles = sorted(glob.glob(f'{config.input_stat_folder}/*.stat'))
 
-        # Initialize an empty DataFrame with correct headers
-        df_combined = pd.DataFrame(columns=self.all_columns(config.line_type))
-
         # Loop through all .stat files
-        for file in sfiles:
+        for i, file in enumerate(sfiles):
             df = self.process_file(file, config.line_type)  # Process each file
-           
+
+            if i == 0:
+                # Initialize an empty DataFrame with correct headers
+                df_combined = pd.DataFrame(columns=df.columns)
+
             # Only concatenate if df is not empty
-            if not df.empty:
-                df_combined = pd.concat([df_combined, df], ignore_index=True)
+            if not df.empty:  
+                df_combined = pd.concat([df_combined, df], ignore_index=True)                
 
         if df_combined.empty:
             raise ValueError("The DataFrame is empty after the line type filter.")
-        
+
         df = df_combined
-
+        
         df = self.filter_by_date(df, config.date_column, config.start_date, config.end_date)
-
+        
         df = df.sort_values(by=config.date_column)
 
         if config.string_filters:  # Check if self.string_filters is not empty
@@ -47,11 +56,23 @@ class ReadStat:
         if config.reformat_file:
             self.save_dataframe(df, config.output_reformat_file)
 
+
         df = df.rename(columns={config.date_column: "date"})
 
         #self.validate_stat_vars(df, self.stat_vars)
 
-        new_columns = [col.lower() for col in config.stat_vars if col.lower() in df.columns]
+        add_columns = config.stat_vars
+        if hasattr(self, 'column_specific'):
+            if "all_thresh" in config.stat_vars:
+                add_columns = [var for var in config.stat_vars if var != "all_thresh"]
+                add_columns = np.unique(self.column_specific + add_columns)
+
+        for i in add_columns:
+            if i not in df.columns:
+                logging.warning(f"Stat var {i} is not available")
+
+        new_columns = [col.lower() for col in add_columns if col.lower() in df.columns]
+
         # Convert the selected columns to numeric, coercing errors to NaN
         df[new_columns] = df[new_columns].apply(pd.to_numeric, errors="coerce")
 
@@ -65,10 +86,11 @@ class ReadStat:
 
         if config.output_file:
             self.save_dataframe(df, config.output_plot_file)
-
+    
         if config.aggregate:
             df = self.aggregation(df, config.group_by)
             self.save_dataframe(df, config.output_agg_file)
+
         
     def all_columns(self, line_type):
         # Get the additional columns based on line type, or an empty list if not found
@@ -82,14 +104,9 @@ class ReadStat:
         checks if a line matches the given line_type, 
         and adds it to a Pandas DataFrame.
         """
+        matching_rows = []
         # Get column headers dynamically
         headers = self.all_columns(line_type)
-        
-        # Create an empty DataFrame with these columns
-        df = pd.DataFrame(columns=headers)        
-
-
-        matching_rows = []
 
         # Open the file and read line by line
         with open(file_path, "r") as file:
@@ -103,15 +120,34 @@ class ReadStat:
                 if row_data[headers.index("line_type")].lower() == line_type.lower():
                     # Ensure the line has enough columns before proceeding
 
-                    if len(row_data) == len(headers):
-                        # Convert to dictionary mapping headers to row values
-                        row_dict = dict(zip(headers, row_data[:len(headers)]))
-                        matching_rows.append(row_dict)
+                    fheaders = headers
+                    if line_type.lower() == 'pct' or line_type.lower() == 'pstd':
+                        fheaders = self.update_headers(headers, row_data, line_type.lower())
 
+                    if len(row_data) == len(fheaders):
+                        # Convert to dictionary mapping headers to row values
+                        row_dict = dict(zip(fheaders, row_data[:len(fheaders)]))
+                        matching_rows.append(row_dict)
+                
         # Convert list of dictionaries to DataFrame in one go
-        df = pd.DataFrame(matching_rows, columns=headers)
+        df = pd.DataFrame(matching_rows, columns=fheaders)
 
         return df  # Return the filtered DataFrame
+ 
+    def update_headers(self,headers,row_data,line_type):
+
+        number_of_thresholds = int(row_data[len(cn.FULL_HEADER) + 1])
+
+        hh = []
+        if line_type == 'pct':
+            self.column_specific = [item for i in range(1, number_of_thresholds) for item in (f"thresh_{i}", f"oy_{i}", f"on_{i}")] + ["thresh_n"]
+            hh = headers + self.column_specific
+        
+        elif line_type == 'pstd':
+            self.column_specific = [f"thresh_{i}" for i in range(1, number_of_thresholds + 1)]         
+            hh = headers + self.column_specific
+        
+        return hh
 
 
     def filter_by_date(self, df, date_column, start_date, end_date):
@@ -135,6 +171,7 @@ class ReadStat:
                 raise ValueError(f"All values in column '{date_column}' could not be converted to datetime format.")
     
             # Convert start and end dates from YAML to datetime
+
             start_date = pd.to_datetime(start_date, format="%Y-%m-%d_%H:%M:%S")
             end_date = pd.to_datetime(end_date, format="%Y-%m-%d_%H:%M:%S")
     
@@ -252,7 +289,6 @@ class ReadStat:
         aggregated_df = df.groupby(group_by_columns, as_index=False).agg(aggregation_functions)
     
         return aggregated_df
-
     
     def save_dataframe(self, df, output_file):
         """

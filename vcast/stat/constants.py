@@ -150,17 +150,14 @@ LINE_TYPE_COLUMNS = {
              "ger", "ger_bcl", "ger_bcu",
              "hss_ec", "hss_ec_bcl", "hss_ec_bcu",
              "ec_value"],
-    "pct": ["total", "n_thresh"] +
-           [item for i in range(1, 12) for item in (f"thresh_{i}", f"oy_{i}", f"on_{i}")] +
-           ["thresh_n"],
+    "pct": ["total", "n_thresh"], # thresholds are added dynamically
     "pstd": ["total", "n_thresh",
              "baser", "baser_ncl", "baser_ncu",
              "reliability", "resolution", "uncertainty",
              "roc_auc",
              "brier", "brier_ncl", "brier_ncu",
              "briercl", "briercl_ncl", "briercl_ncu",
-             "bss", "bss_smpl"] +
-            [f"thresh_{i}" for i in range(1, 13)],
+             "bss", "bss_smpl"],
     "pjc": ["total", "n_thresh"] +
            [item for i in range(1, 100) for item in (f"thresh_{i}", f"oy_tp_{i}", f"on_tp_{i}",
                                                      f"calibration_{i}", f"refinement_{i}", 

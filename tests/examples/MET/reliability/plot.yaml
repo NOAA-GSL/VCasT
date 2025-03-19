@@ -1,0 +1,63 @@
+
+plot_type: reliability
+
+fcst_var: REFC_ENS_FREQ_ge20
+
+vars:
+  - 10000: "./agg.data"
+  - 30000: "./agg.data"
+  - 50000: "./agg.data"
+  - 100000: "./agg.data"
+  - 180000: "./agg.data"
+  - 360000: "./agg.data"
+
+unique:  
+
+# General plot parameters
+plot_title: "Reliability REFC_ENS_FREQ_ge20 - May 2022"
+legend_title: "Lead Time"
+labels:
+  - "01"
+  - "03"
+  - "05"
+  - "10"
+  - "18"
+  - "36"
+
+line_color:
+  - "blue"
+  - "red"
+  - "green"
+  - "purple"
+  - "orange"
+  - "brown"
+
+line_marker:
+  - "o"
+  - "s"
+  - "D"
+  - "^"
+  - "v"
+  - "x"
+
+line_type:
+  - "-"       # solid
+  - "--"      # dashed
+  - "-."      # dashdot
+  - ":"       # dotted
+  - "-" # custom dash pattern 1 (define in code)
+  - ":" # custom dash pattern 2 (define in code)
+
+line_width:
+  - 0.8
+  - 0.8
+  - 0.8
+  - 0.8
+  - 0.8
+  - 0.8
+
+
+output_filename: stat_agg_reliability.png
+
+# Line plot variables
+grid: true

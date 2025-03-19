@@ -1,0 +1,34 @@
+input_stat_folder: ./stat_files
+line_type: cts # fho, ctc, cts, cnt, mctc, mpr, sl1l2, sal1l2, vl1l2, vcnt, mcts, 
+               # pct, pstd, pjc, prc, eclv, val1l2, seeps_mpr, seeps
+
+date_column: "fcst_valid_beg"   # fcst_valid_beg, fcst_valid_end, obs_valid_beg, obs_valid_end
+start_date: "2024-04-29_12:00:00"  # Start date of the data processing
+end_date: "2024-05-31_12:00:00"    # End date of the data processing
+
+# Threshold filtering (min-max for multiple numerical columns)
+thresholds:
+
+# String filtering (list of allowed values for each column)
+string_filters:
+  model: ["RRFS_mem000"]
+  fcst_var: ["APCP_01"]
+  fcst_thresh: [">0.0"]
+  fcst_lead: ["0","010000","020000","030000","040000","050000","060000","070000","080000","090000","100000","110000","120000","130000","140000","150000","160000","170000","180000","190000","200000","210000","220000","230000"]
+  vx_mask: ["CONUS"]
+
+# Column filtering (Keep only these columns; leave empty to keep all)
+columns_to_keep: 
+stat_vars: ["pody","far","csi","fbias", "gss"]
+
+# Whether to save the reformatted DataFrame to a file
+reformat_file: false  # Set to false to disable writing the file
+output_reformat_file: "./filtered_output.data"  # Path to save output
+
+# Extract variables for plotting
+output_file: false  # Set to false to disable writing the file
+output_plot_file: "./vars.data"  # Path to save output
+
+aggregate: true
+group_by: ["model","fcst_var","fcst_lead"]
+output_agg_file: "./APCP01_agg.data"  # Path to save output

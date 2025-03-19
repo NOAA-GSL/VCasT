@@ -1,0 +1,25 @@
+# Creating a Plot with CTS Line Type Metrics
+This example demonstrates how to aggregate data from MET stat files to compute cts (contingency table statistics) metrics—such as FBIAS, PODY, FAR, and CSI—and then plot them with VCasT.
+
+1. Data Aggregation
+### Configuration:
+  config_cts.yaml is the configuration file that tells VCasT which MET stat files to process and which CTS metrics to compute or extract (e.g., FBIAS, PODY, FAR, CSI).
+  
+  Run VCasT to Aggregate Data:
+
+```bash
+vcast config_cts.yaml
+```
+This command processes the MET stat files, aggregates the relevant CTS metrics, and outputs one data file for plotting.
+
+2. Plot Generation
+### Plot Configuration:
+
+  plot.yaml defines how to visualize the aggregated data, specifying line colors, markers, labels, and other plot properties.
+
+  Run VCasT to Generate the Plot:
+
+```bash
+vcast plot.yaml
+```
+This command reads the aggregated data file from the previous step and creates a line plot showing each CTS metric over the chosen axis (e.g., lead time).

@@ -89,12 +89,14 @@ class ReadStat:
     
         if config.aggregate:
             df = self.aggregation(df, config.group_by)
+            if config.line_type.lower() == "ecnt" and "ratio" in add_columns:
+                df['ratio'] = df['spread_plus_oerr'] / df['rmse']
             self.save_dataframe(df, config.output_agg_file)
 
         
-    def all_columns(self, line_type):
+    def all_columns(self, line_type, line_type_columns = cn.LINE_TYPE_COLUMNS):
         # Get the additional columns based on line type, or an empty list if not found
-        line_type_columns = cn.LINE_TYPE_COLUMNS.get(line_type.lower(), [])
+        line_type_columns = line_type_columns.get(line_type.lower(), [])
     
         return cn.FULL_HEADER + line_type_columns
 
@@ -107,6 +109,7 @@ class ReadStat:
         matching_rows = []
         # Get column headers dynamically
         headers = self.all_columns(line_type)
+        fheaders = headers
 
         # Open the file and read line by line
         with open(file_path, "r") as file:
@@ -115,14 +118,17 @@ class ReadStat:
             for line in file:
                 # Split the line into columns (handling multiple spaces)
                 row_data = line.split()
-               
+
                 # Check if the line contains the specific line type
                 if row_data[headers.index("line_type")].lower() == line_type.lower():
                     # Ensure the line has enough columns before proceeding
 
-                    fheaders = headers
                     if line_type.lower() == 'pct' or line_type.lower() == 'pstd':
                         fheaders = self.update_headers(headers, row_data, line_type.lower())
+
+                    if len(row_data) != len(fheaders):
+                        headers = self.all_columns(line_type, cn.LINE_TYPE_COLUMNS_OLD)
+                        fheaders = headers
 
                     if len(row_data) == len(fheaders):
                         # Convert to dictionary mapping headers to row values

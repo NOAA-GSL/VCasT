@@ -1,0 +1,36 @@
+input_stat_folder: ./stats
+line_type: cts # fho, ctc, cts, cnt, mctc, mpr, sl1l2, sal1l2, vl1l2, vcnt, mcts, 
+               # pct, pstd, pjc, prc, eclv, val1l2, seeps_mpr, seeps
+
+date_column: "fcst_valid_beg"   # fcst_valid_beg, fcst_valid_end, obs_valid_beg, obs_valid_end
+start_date: "2022-05-01_00:00:00"  # Start date of the data processing
+end_date: "2022-05-07_12:00:00"    # End date of the data processing
+
+# Threshold filtering (min-max for multiple numerical columns)
+thresholds:
+
+# String filtering (list of allowed values for each column)
+string_filters:
+  model: ["RRFS_GDAS_GF.SPP.SPPT_mem01","RRFS_GDAS_GF.SPP.SPPT_mem02","RRFS_GDAS_GF.SPP.SPPT_mem03","RRFS_GDAS_GF.SPP.SPPT_mem04","RRFS_GDAS_GF.SPP.SPPT_mem05",
+          "RRFS_GDAS_GF.SPP.SPPT_mem06","RRFS_GDAS_GF.SPP.SPPT_mem07","RRFS_GDAS_GF.SPP.SPPT_mem08","RRFS_GDAS_GF.SPP.SPPT_mem09","RRFS_GDAS_GF.SPP.SPPT_mem10"]
+  fcst_var: ["APCP_03"]
+  fcst_thresh: [">0.0"]
+  fcst_lead: ["00000","030000","060000","090000","120000","150000",
+              "180000","210000","240000","270000",
+              "300000","330000","360000"]
+  vx_mask: ["CONUS"]
+
+columns_to_keep:
+stat_vars: ["fbias"]
+
+# Whether to save the reformatted DataFrame to a file
+reformat_file: false  # Set to false to disable writing the file
+output_reformat_file: "./filtered_output.data"  # Path to save output
+
+# Extract variables for plotting
+output_file: false  # Set to false to disable writing the file
+output_plot_file: "./vars.data"  # Path to save output
+
+aggregate: true
+group_by: ["model","fcst_var","fcst_lead"]
+output_agg_file: "./APCP_agg.data"  # Path to save output

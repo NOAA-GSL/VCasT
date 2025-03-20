@@ -67,74 +67,77 @@ class LinePlot(BasePlot):
                         raise Exception(f"No data found for fcst_var = {self.config.fcst_var}")
         
                 # Handle unique grouping if applicable
-                if self.config.unique is not None:
-                    if self.config.unique in data.columns:
-                        unique_vals = np.unique(data[self.config.unique])
-                        # Use the (i-1)th unique value (or adjust as needed)
-                        if i < len(unique_vals):
-                            data = data[data[self.config.unique] == unique_vals[i-1]]
-                        else:
-                            raise IndexError(f"Index {i} out of bounds for unique values in {self.config.unique}.")
-        
-                # Check that the variable exists in the merged DataFrame.
-                if var not in data.columns:
-                    raise ValueError(f"Variable '{var}' not found in the file {file}.")
-                        
-                # Build x-values: Always use date
-                if "date" in data.columns:
-                    # Convert the date column using the expected format (adjust format if needed)
-                    data["date"] = pd.to_datetime(data["date"], format='%Y-%m-%d %H:%M:%S')
-                    # Create a complete date range using the config settings.
-                    complete_dates = pd.date_range(
-                        start=start_dt, 
-                        end=end_dt, 
-                        freq=f"{self.config.interval_hours}h"
-                    )
-                    complete_df = pd.DataFrame({"date": complete_dates})
-                    # Merge complete dates with the data (left join: missing dates yield NaN)
-                    merged = pd.merge(complete_df, data, on="date", how="left")
-                    # x_values are the complete date column converted to matplotlib's date numbers.
-                    x_values = mdates.date2num(merged["date"])
-                elif "fcst_lead" in data.columns:
-                    x_values = data["fcst_lead"].astype(int).tolist()
-                    if np.mean(x_values) > 10000:
-                        x_values = [val / 10000 for val in x_values]
+
+                if self.config.unique is None:
+                    self.__exceute_line(var, data, file, start_dt, end_dt, i)
+
                 else:
-                    raise ValueError(f"'date' column not found in the file {file}.")
-        
-                # Extract y-values from the merged DataFrame.
-                y_values = data[var]
+                    for j, column_obj in enumerate(self.config.unique):
+                        column_dict = vars(column_obj)
 
-                # Optionally set custom x-ticks if provided.
-                if self.config.xticks:
-                    custom_xticks = [x_values[j] for j in self.config.xticks if j < len(x_values)]
-                    self.ax.set_xticks(custom_xticks)
-        
-                
-                # Set x-axis limits if provided.
-                if self.config.xlim:
-                    self.ax.set_xlim(x_values[self.config.xlim[0]], x_values[self.config.xlim[1]])
-                
-                self.ax.plot(
-                    x_values, y_values * self.config.scale,
-                    color=self.config.line_color[i],
-                    marker=self.config.line_marker[i],
-                    linestyle=self.config.line_type[i],
-                    linewidth=self.config.line_width[i],
-                    label=self.config.labels[i]
-                )
+                        for column, value in column_dict.items():
 
-                # If self.config.average is True, calculate the overall average and add a horizontal line.
-                if getattr(self.config, "average", False):
-                    # Compute the average, ignoring NaN values.
-                    avg_value = np.nanmean(y_values * self.config.scale)
-                    self.ax.axhline(
-                        y=avg_value ,
-                        color=self.config.line_color[i],
-                        linestyle=self.config.line_type[i],
-                        linewidth=self.config.line_width[i],
-                        label=f"{self.config.labels[i]} Average ({avg_value:.2f})"
-                    )
+                            xdata = data[data[column] == value]
+                            
+                            self.__exceute_line(var, xdata, file, start_dt, end_dt, i + j)
+
+    def __exceute_line(self, var, data, file, start_dt, end_dt, i):
+
+        # Check that the variable exists in the merged DataFrame.
+        if var not in data.columns:
+            raise ValueError(f"Variable '{var}' not found in the file {file}.")
+                
+        # Build x-values: Always use date
+        if "date" in data.columns:
+            # Convert the date column using the expected format (adjust format if needed)
+            data["date"] = pd.to_datetime(data["date"], format='%Y-%m-%d %H:%M:%S')
+            # Create a complete date range using the config settings.
+            complete_dates = pd.date_range(
+                start=start_dt, 
+                end=end_dt, 
+                freq=f"{self.config.interval_hours}h"
+            )
+            complete_df = pd.DataFrame({"date": complete_dates})
+            # Merge complete dates with the data (left join: missing dates yield NaN)
+            merged = pd.merge(complete_df, data, on="date", how="left")
+            # x_values are the complete date column converted to matplotlib's date numbers.
+            x_values = mdates.date2num(merged["date"])
+        elif "fcst_lead" in data.columns:
+            x_values = data["fcst_lead"].astype(int).tolist()
+            if np.mean(x_values) > 10000:
+                x_values = [val / 10000 for val in x_values]
+        else:
+            raise ValueError(f"'date' column not found in the file {file}.")
+
+        # Extract y-values from the merged DataFrame.
+        y_values = data[var]
+
+        # Optionally set custom x-ticks if provided.
+        if self.config.xticks:
+            custom_xticks = [x_values[j] for j in self.config.xticks if j < len(x_values)]
+            self.ax.set_xticks(custom_xticks)
+        # Set x-axis limits if provided.
+        if self.config.xlim:
+            self.ax.set_xlim(x_values[self.config.xlim[0]], x_values[self.config.xlim[1]])                
+        self.ax.plot(
+            x_values, y_values * self.config.scale,
+            color=self.config.line_color[i],
+            marker=self.config.line_marker[i],
+            linestyle=self.config.line_type[i],
+            linewidth=self.config.line_width[i],
+            label=self.config.labels[i]
+        )
+        # If self.config.average is True, calculate the overall average and add a horizontal line.
+        if getattr(self.config, "average", False):
+            # Compute the average, ignoring NaN values.
+            avg_value = np.nanmean(y_values * self.config.scale)
+            self.ax.axhline(
+                y=avg_value ,
+                color=self.config.line_color[i],
+                linestyle=self.config.line_type[i],
+                linewidth=self.config.line_width[i],
+                label=f"{self.config.labels[i]} Average ({avg_value:.2f})"
+            )    
 
     def get_x_values(self, data):
         """

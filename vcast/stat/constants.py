@@ -4,7 +4,7 @@ AVAILABLE_VARS = ["rmse", "bias", "quantiles", "mae", "gss", "fbias", "pod", "fa
 AVAILABLE_LINE_TYPES = [
             "fho", "ctc", "cts", "cnt", "mctc", "mpr", "sl1l2", "sal1l2", 
             "vl1l2", "vcnt", "pct", "pstd", "pjc", "prc", "eclv", "sl1l2", 
-            "sal1l2", "vl1l2", "val1l2", "vcnt", "mpr", "seeps_mpr", "seeps"
+            "sal1l2", "vl1l2", "val1l2", "vcnt", "mpr", "seeps_mpr", "seeps", "ecnt"
         ]
 
 FULL_HEADER = [ 
@@ -187,5 +187,42 @@ LINE_TYPE_COLUMNS = {
               "odfl", "odfh", "olfd", "olfh", "ohfd", "ohfl",
               "pf1", "pf2", "pf3",
               "pv1", "pv2", "pv3",
-              "seeps"]
+              "seeps"],
+    "ecnt":  [
+    "total", "n_ens", "crps", "crpss", 
+    "ign", "me", "rmse", "spread", "me_oerr", 
+    "rmse_oerr", "spread_oerr", "spread_plus_oerr", "crpscl", "crps_emp", 
+    "crpscl_emp", "crpss_emp", "crps_emp_fair", "spread_md", "mae", 
+    "mae_oerr", "bias_ratio", "n_ge_obs", "me_ge_obs", 
+    "n_lt_obs", "me_lt_obs", "ign_conv_oerr", "ign_corr_oerr"]
+
+}
+
+LINE_TYPE_COLUMNS_OLD = {
+    "cts": ["total", "baser", "baser_ncl", "baser_ncu", "baser_bcl", "baser_bcu",
+            "fmean", "fmean_ncl", "fmean_ncu", "fmean_bcl", "fmean_bcu",
+            "acc", "acc_ncl", "acc_ncu", "acc_bcl", "acc_bcu",
+            "fbias", "fbias_bcl", "fbias_bcu",
+            "pody", "pody_ncl", "pody_ncu", "pody_bcl", "pody_bcu",
+            "podn", "podn_ncl", "podn_ncu", "podn_bcl", "podn_bcu",
+            "pofd", "pofd_ncl", "pofd_ncu", "pofd_bcl", "pofd_bcu",
+            "far", "far_ncl", "far_ncu", "far_bcl", "far_bcu",
+            "csi", "csi_ncl", "csi_ncu", "csi_bcl", "csi_bcu",
+            "gss", "gss_bcl", "gss_bcu",
+            "hk", "hk_ncl", "hk_ncu", "hk_bcl", "hk_bcu",
+            "hss", "hss_bcl", "hss_bcu",
+            "odds", "odds_ncl", "odds_ncu", "odds_bcl", "odds_bcu",
+            "lodds", "lodds_ncl", "lodds_ncu", "lodds_bcl", "lodds_bcu",
+            "orss", "orss_ncl", "orss_ncu", "orss_bcl", "orss_bcu",
+            "eds", "eds_ncl", "eds_ncu", "eds_bcl", "eds_bcu",
+            "seds", "seds_ncl", "seds_ncu", "seds_bcl", "seds_bcu",
+            "edi", "edi_ncl", "edi_ncu", "edi_bcl", "edi_bcu",
+            "sedi", "sedi_ncl", "sedi_ncu", "sedi_bcl", "sedi_bcu",
+            "bagss", "bagss_bcl", "bagss_bcu"],
+    "ecnt":  [
+    "total", "n_ens", "crps", "crpss", 
+    "ign", "me", "rmse", "spread", "me_oerr", 
+    "rmse_oerr", "spread_oerr", "spread_plus_oerr", "crpscl", "crps_emp", 
+    "crpscl_emp", "crpss_emp"]
+
 }

@@ -1,0 +1,40 @@
+# Date and Time Settings
+start_date: "2024-04-01_04:00:00"  # Start date of the data processing
+end_date: "2024-04-01_15:00:00"    # End date of the data processing
+interval_hours: "1"                # Interval for processing (e.g., hourly, 6-hourly)
+
+# Forecast Configuration
+fcst_file_template: "../input_files/REF/proc_graphhrrr_{year}-{month}-{day}T{hour}:00:00_f001_new.nc"
+fcst_var: "REFC"                # Forecast variable name
+fcst_level: 0
+fcst_type_of_level: "atmosphere"
+shift: -1                          # Time shift (if any)
+
+
+# Reference Configuration
+ref_file_template: "../input_files/HRRR/{year}{month}{day}/{cycle}/hrrr.t{hour}z.wrfprsf00_refc.grib2"
+ref_var: "refc" 
+ref_level: 0
+ref_type_of_level: "atmosphere" #"heightAboveGround"
+               
+
+# Output Configuration
+output_dir: "./"  # Directory to save outputs
+output_filename: "REF.data"  # Output file template
+
+# Statistical Metrics
+stat_name:
+  - "rmse"
+
+threshold: 15
+
+# Variable Threshold and Radius
+var_threshold: 15                  # Threshold value for analysis
+var_radius: 2                        # Influence radius for calculations (grid points)
+
+# Grid and Interpolation Settings
+interpolation: true               # Whether to interpolate data
+target_grid: "../input_files/domain.nc"                # Target grid specification
+
+# Parallel Processing
+processes: 13                     # Number of processes to run in parallel

@@ -4,7 +4,7 @@ end_date: "2024-04-01_15:00:00"    # End date of the data processing
 interval_hours: "1"                # Interval for processing (e.g., hourly, 6-hourly)
 
 # Forecast Configuration
-fcst_file_template: "../input_files/REF/proc_graphhrrr_{year}-{month}-{day}T{hour}:00:00_f001_new.nc"
+fcst_file_template: "../input_files/REF/refc_only/proc_{year}-{month}-{day}T{hour}:00:00_f001.nc"
 fcst_var: "REFC"                # Forecast variable name
 fcst_level: 0
 fcst_type_of_level: "atmosphere"

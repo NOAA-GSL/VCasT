@@ -430,56 +430,61 @@ def compute_stdev(forecast_values, reference_values):
     # Compute and return the standard deviation of forecast values
     return np.std(forecast_values)
 
-def compute_fss(forecast_values, reference_values, threshold, neighborhood_size):
+import numpy as np
+from scipy.signal import convolve2d
+
+def compute_fss(forecast_values, reference_values, threshold, window_size):
     """
     Compute the Fractions Skill Score (FSS) for spatial forecasts.
 
     Parameters:
-    forecast_values (np.ndarray): Forecasted values of shape (n, m).
-    reference_values (np.ndarray): Reference values of shape (n, m).
-    threshold (float): The threshold above which an event is considered significant.
-    neighborhood_size (int): Size of the neighborhood for fraction computation (e.g., radius in grid points).
+    forecast_values (np.ndarray): Forecasted reflectivity values of shape (n, m).
+    reference_values (np.ndarray): Observed reflectivity values of shape (n, m).
+    threshold (float): The reflectivity threshold above which an event is defined (e.g., 40 dBZ).
+    window_size (int): Size of the window for fraction computation (e.g., 5 for a 5x5 grid box).
 
     Returns:
-    float: The FSS value.
+    float: The computed FSS value.
 
     Raises:
-    ValueError: If the shapes of the inputs do not match or the neighborhood size is invalid.
+    ValueError: If the shapes of the inputs do not match or the window size is invalid.
     """
-
     if forecast_values.shape != reference_values.shape:
         raise ValueError("Forecast values and reference values must have the same shape.")
-    if neighborhood_size <= 0:
-        raise ValueError("Neighborhood size must be greater than zero.")
+    if window_size <= 0:
+        raise ValueError("Window size must be greater than zero.")
 
-    # Create binary masks for the threshold
-    fcst_binary = forecast_values >= threshold
-    ref_binary = reference_values >= threshold
+    # Convert both forecast and reference fields to binary events (1 if >= threshold, else 0)
+    fcst_binary = (forecast_values >= threshold).astype(float)
+    ref_binary = (reference_values >= threshold).astype(float)
+
+    # If neither field contains events, FSS cannot be computed
+    if not (np.any(fcst_binary) or np.any(ref_binary)):
+        return np.nan
 
     # Define the kernel for neighborhood averaging
-    kernel = np.ones((neighborhood_size, neighborhood_size))
+    kernel = np.ones((window_size, window_size), dtype=float)
 
-    # Compute fractions using 2D convolution
-    fcst_fractions = convolve(fcst_binary.astype(float), kernel, mode='constant', cval=0)
-    ref_fractions = convolve(ref_binary.astype(float), kernel, mode='constant', cval=0)
+    # Compute the fraction of event occurrence in the neighborhood using 2D convolution
+    fcst_fractions = convolve2d(fcst_binary, kernel, mode='same', boundary='fill', fillvalue=0)
+    ref_fractions = convolve2d(ref_binary, kernel, mode='same', boundary='fill', fillvalue=0)
 
-    # Normalize fractions to account for kernel area
-    kernel_area = neighborhood_size ** 2
+    # Normalize the fractions by the area of the kernel
+    kernel_area = window_size ** 2
     fcst_fractions /= kernel_area
     ref_fractions /= kernel_area
 
-    # Compute the mean square difference of fractions
+    # Calculate the mean square error (MSE) between the forecast and reference fractions
     mse_fractions = np.mean((fcst_fractions - ref_fractions) ** 2)
 
-    # Compute the reference MSE
-    ref_mse = np.mean(ref_fractions ** 2) + np.mean(fcst_fractions ** 2)
-
-    # Handle case where ref_mse is zero
+    # Compute the reference MSE (the worst-case scenario)
+    ref_mse = np.mean(fcst_fractions**2) + np.mean(ref_fractions**2)
     if ref_mse == 0:
         return np.nan
 
-    # Calculate FSS
+    # Compute FSS: 1 indicates perfect skill, 0 indicates no skill
     fss = 1 - mse_fractions / ref_mse
     return fss
+
 
 

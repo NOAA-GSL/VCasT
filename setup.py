@@ -19,7 +19,8 @@ setup(
         "pandas",
         "matplotlib",
         "colorama",
-        "xarray"
+        "xarray",
+        "zarr"
     ],
     python_requires=">=3.6",  
     classifiers=[

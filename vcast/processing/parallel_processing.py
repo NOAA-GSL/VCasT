@@ -32,6 +32,11 @@ def process_date_multiprocessing(date, fcst_file, ref_file, config):
             ref_file, config.ref_var, config.ref_type_of_level, config.ref_level, date
         )
 
+        if hasattr(config, 'job_time') and config.job_time is not None:
+            fcst_data = fcst_data[config.job_time]
+            ref_data = ref_data[config.job_time]
+        
+
         # Adjust longitude ranges if necessary
         if 'grib2' in rtype:
             rlons += 360.

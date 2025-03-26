@@ -25,7 +25,7 @@ def interpolate_to_target_grid(src_data, src_lats, src_lons, target_file):
     if os.path.isdir(target_file):
         ds = xr.open_zarr(target_file,decode_timedelta=True)
     else:
-        ds = xr.open_dataset(target_file)
+        ds = xr.open_dataset(target_file,decode_timedelta=True)
 
     # Extract target latitude array
     if 'latitude' in ds:

@@ -61,10 +61,11 @@ class LinePlot(BasePlot):
                 # Load data (assuming tab-separated values)
                 data = pd.read_csv(file, sep="\t")
                 
-                if self.config.fcst_var is not None:
-                    data = data[data["fcst_var"] == self.config.fcst_var]
-                    if len(data) == 0:
-                        raise Exception(f"No data found for fcst_var = {self.config.fcst_var}")
+                if hasattr(self.config, 'fcst_var'):
+                    if self.config.fcst_var is not None:                
+                        data = data[data["fcst_var"] == self.config.fcst_var]
+                        if len(data) == 0:
+                            raise Exception(f"No data found for fcst_var = {self.config.fcst_var}")
         
                 # Handle unique grouping if applicable
 

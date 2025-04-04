@@ -12,5 +12,6 @@ Modules:
 from .constants import *
 from .stat_handler import ReadStat
 from .stats import *
+from .ensemble_stats import *
 
 __all__ = ["ReadStat"]

@@ -1,7 +1,9 @@
-import os
+from vcast.io import FileChecker
 import numpy as np
 import xarray as xr
 from scipy.interpolate import griddata
+import pygrib
+
 
 def interpolate_to_target_grid(src_data, src_lats, src_lons, target_file):
     """
@@ -21,29 +23,47 @@ def interpolate_to_target_grid(src_data, src_lats, src_lons, target_file):
     - numpy.ndarray: Interpolated data on the target grid, or the original src_data if the 
       target grid matches the source grid.
     """
+
+    fc = FileChecker(target_file)    
+
+    if 'netcdf' in fc.identify_file_type():
+        stype = 'netcdf'
+    elif 'grib2' in fc.identify_file_type():
+        stype = 'grib2'
+    elif 'zarr' in fc.identify_file_type():
+        stype = 'zarr'            
+    else:
+        raise Exception("Error: File format unknown.")    
+
     # Open target dataset using xarray for both NetCDF and Zarr
-    if os.path.isdir(target_file):
+    if stype == 'zarr':
         ds = xr.open_zarr(target_file,decode_timedelta=True)
-    else:
-        ds = xr.open_dataset(target_file,decode_timedelta=True)
+    elif stype == 'netcdf':
+        ds = xr.open_dataset(target_file,decode_timedelta=True)    
+    elif stype == 'grib2':
+        ds = pygrib.open(target_file)
 
-    # Extract target latitude array
-    if 'latitude' in ds:
-        target_lats = ds['latitude'].values
-    elif 'lat' in ds:
-        target_lats = ds['lat'].values
+    if stype == "zarr" or stype == "netcdf":
+        # Extract target latitude array
+        if 'latitude' in ds:
+            target_lats = ds['latitude'].values
+        elif 'lat' in ds:
+            target_lats = ds['lat'].values
+        else:
+            ds.close()
+            raise ValueError("Latitude variable not found in target dataset.")
+    
+        # Extract target longitude array
+        if 'longitude' in ds:
+            target_lons = ds['longitude'].values
+        elif 'lon' in ds:
+            target_lons = ds['lon'].values
+        else:
+            ds.close()
+            raise ValueError("Longitude variable not found in target dataset.")
     else:
-        ds.close()
-        raise ValueError("Latitude variable not found in target dataset.")
-
-    # Extract target longitude array
-    if 'longitude' in ds:
-        target_lons = ds['longitude'].values
-    elif 'lon' in ds:
-        target_lons = ds['lon'].values
-    else:
-        ds.close()
-        raise ValueError("Longitude variable not found in target dataset.")
+        msg = ds.message(1)
+        _, target_lats, target_lons = msg.data()
 
     # Close the dataset to free resources
     ds.close()

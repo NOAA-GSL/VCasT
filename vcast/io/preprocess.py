@@ -1,4 +1,3 @@
-from vcast.io import FileChecker
 from datetime import datetime, timedelta
 import numpy as np
 import pygrib
@@ -12,6 +11,7 @@ class Preprocessor:
 
     @staticmethod
     def read_input_data(input_file, var_name, type_of_level, level, date):
+        from vcast.io import FileChecker
         """
         Reads forecast or observation data from a given input file.
 

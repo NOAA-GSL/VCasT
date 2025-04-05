@@ -28,6 +28,7 @@ class FileChecker:
             raise FileNotFoundError(f"File {self.file_path} does not exist.")
     
         # If the path is a directory, attempt to open it as a Zarr dataset.
+
         if os.path.isdir(self.file_path):
             try:
                 ds = xr.open_zarr(self.file_path,decode_timedelta=True)

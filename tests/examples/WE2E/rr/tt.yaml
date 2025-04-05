@@ -1,0 +1,47 @@
+# Date and Time Settings
+start_date: "2022-05-01_00:00:00"  # Start date of the data processing
+end_date: "2022-05-01_00:00:00"    # End date of the data processing
+interval_hours: 24                # Interval for processing (e.g., hourly, 6-hourly)
+
+start_lead_time: 0
+end_lead_time: 0
+interval_lead_time: 1
+
+members: ["ens_0"]
+
+# Forecast Configuration
+fcst_file_template: "/scratch2/BMC/fv3lam/ajohns/enkf_forec_upponly/{year}{month}{day}/{members}/uppfiles/WRFPRS.GrbF{lead_time}"
+fcst_var: "2t"                # Forecast variable name
+fcst_level: 2
+fcst_type_of_level: "heightAboveGround"
+shift: 0                          # Time shift (if any)
+
+
+# Reference Configuration
+ref_file_template: "./obs/{valid_year}{valid_month}{valid_day}/hrrr.t{valid_hour}z.wrfprsf00.grib2"
+ref_var: "2t" 
+ref_level: 2
+ref_type_of_level: "heightAboveGround" #"heightAboveGround"
+               
+
+# Output Configuration
+output_dir: "./"  # Directory to save outputs
+output_filename: "ttoutput.data"  # Output file template
+
+# Statistical Metrics
+stat_type: "det"
+stat_name:
+  - "rmse"
+
+threshold:
+
+# Variable Threshold and Radius
+var_threshold: 15                  # Threshold value for analysis
+var_radius: 2                        # Influence radius for calculations (grid points)
+
+# Grid and Interpolation Settings
+interpolation: true               # Whether to interpolate data
+target_grid: "/scratch2/BMC/fv3lam/ajohns/enkf_forec_upponly/20220501/ens_1/uppfiles/WRFPRS.GrbF00"                # Target grid specification
+
+# Parallel Processing
+processes: 1                     # Number of processes to run in parallel

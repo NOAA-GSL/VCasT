@@ -1,0 +1,49 @@
+start_date: "2024-04-01_04:00:00"  # Start date of the data processing
+end_date: "2024-04-01_15:00:00"    # End date of the data processing
+interval_hours: "1"                # Interval for processing (e.g., hourly, 6-hourly)
+
+average: true
+scale: 1
+
+plot_type: line
+
+
+vars:
+  - rmse: "./HRRR.data"
+  - rmse: "./REF.data"
+
+unique:  
+
+# General plot parameters
+plot_title: "REFC (>=15)"
+legend_title: "Models"
+labels:
+  - "HRRR"
+  - "REF"
+
+line_color:
+  - "green"
+  - "blue"
+
+line_marker:
+  - "o"
+  - "s"
+
+line_type:
+  - "-."
+  - "--"
+
+line_width:
+  - 2
+  - 2
+
+output_filename: plot_REFC.png
+
+# Line plot variables
+x_label: "Lead Time"
+y_label: "RMSE"
+ylim: [0, 30]
+xlim: [0,11]       # Adjust as needed for your dataset
+grid: true
+yticks:   # Customize tick marks if needed
+xticks: [0,2,4,6,8,10]        # Customize tick marks if needed

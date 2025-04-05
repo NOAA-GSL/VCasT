@@ -1,5 +1,5 @@
 import numpy as np
-from scipy.ndimage import convolve
+from scipy.signal import convolve2d
 
 def apply_threshold_mask(forecast_values, reference_values, threshold=None):
     """
@@ -175,7 +175,7 @@ def compute_mae(forecast_values, reference_values):
     return np.mean(np.abs(forecast_values - reference_values))
 
 
-def compute_scores(fcst_data, ref_data, var_threshold, radius=None):
+def compute_scores(fcst_data, ref_data, var_threshold, radius=0):
     """
     Calculate hits, misses, false alarms, and correct rejections based on forecast and reference data.
     Handles both local grid point comparisons and grid radius of influence.
@@ -429,9 +429,6 @@ def compute_stdev(forecast_values, reference_values):
 
     # Compute and return the standard deviation of forecast values
     return np.std(forecast_values)
-
-import numpy as np
-from scipy.signal import convolve2d
 
 def compute_fss(forecast_values, reference_values, threshold, window_size):
     """

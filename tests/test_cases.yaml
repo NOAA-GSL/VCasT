@@ -1,0 +1,49 @@
+tests:
+  - name: "MET CTS Metrics"
+    example_dir: "tests/examples/MET/cts_metrics"
+    commands:
+      - config: "cts.yaml"
+        outputs:
+          REFC_agg.data: "expected_outputs/REFC_agg.data"
+      - config: "plot.yaml"
+        outputs:
+          stat_agg_REFC.png: "expected_outputs/stat_agg_REFC.png"
+  - name: "MET Reliability"
+    example_dir: "tests/examples/MET/reliability"
+    commands:
+      - config: "pct.yaml"
+        outputs:
+          vars.data: "expected_outputs/vars.data"
+          agg.data: "expected_outputs/agg.data"
+      - config: "plot.yaml"
+        outputs:
+          stat_agg_REFC.png: "expected_outputs/stat_agg_reliability.png"
+  - name: "MET Spread-Skill Scores"
+    example_dir: "tests/examples/MET/spread-skill"
+    commands:
+      - config: "ecnt.yaml"
+        outputs:
+          vars.data: "expected_outputs/vars.data"
+          agg.data: "expected_outputs/agg.data"
+      - config: "plot.yaml"
+        outputs:
+          stat_agg_REFC.png: "expected_outputs/spread_skill.png"
+  - name: "MET Performance Diagram"
+    example_dir: "tests/examples/MET/performance_diagram"
+    commands:
+      - config: "cts.yaml"
+        outputs:
+          APCP01_agg.data: "expected_outputs/APCP01_agg.data"
+      - config: "plot.yaml"
+        outputs:
+          stat_agg_REFC.png: "expected_outputs/stat_agg_performance.png"
+  - name: "MET FBIAS - Multiple models"
+    example_dir: "tests/examples/MET/fbias_multiple_models"
+    commands:
+      - config: "cts.yaml"
+        outputs:
+          APCP_agg.data: "expected_outputs/APCP_agg.data"
+      - config: "plot.yaml"
+        outputs:
+          stat_agg_REFC.png: "expected_outputs/stat_FBIAS_APCP.png"
+  

@@ -483,5 +483,86 @@ def compute_fss(forecast_values, reference_values, threshold, window_size):
     fss = 1 - mse_fractions / ref_mse
     return fss
 
+def fss_monte_carlo_significance(forecast_values, reference_values, threshold, window_size, n_iterations=1000):
+    """
+    Compute the Monte Carlo significance of the observed FSS.
+    
+    Parameters:
+        forecast_values (np.ndarray): Forecast reflectivity values.
+        reference_values (np.ndarray): Observed reflectivity values.
+        threshold (float): Threshold for event detection.
+        window_size (int): Window size for FSS computation.
+        n_iterations (int): Number of Monte Carlo iterations.
+        
+    Returns:
+        observed_fss (float): FSS computed from the original fields.
+        p_value (float): Fraction of Monte Carlo samples with FSS equal to or greater than the observed FSS.
+        null_distribution (np.ndarray): Array of FSS values from the Monte Carlo runs.
+    """
+    # Compute observed FSS
+    observed_fss = compute_fss(forecast_values, reference_values, threshold, window_size)
+    
+    null_distribution = []
+    # For each iteration, shuffle the forecast field to break spatial structure.
+    for i in range(n_iterations):
+        # Shuffle the forecast values; flatten then reshape to preserve original shape.
+        shuffled_fcst = np.random.permutation(forecast_values.flatten()).reshape(forecast_values.shape)
+        fss_value = compute_fss(shuffled_fcst, reference_values, threshold, window_size)
+        null_distribution.append(fss_value)
+    
+    null_distribution = np.array(null_distribution)
+    
+    # Compute p-value: fraction of shuffled FSS values equal to or exceeding the observed FSS.
+    p_value = np.mean(null_distribution >= observed_fss)
+    
+    return observed_fss, p_value, null_distribution
 
+def fss_bootstrap_significance(forecast_values, reference_values, threshold, window_size, n_bootstrap=1000):
+    """
+    Compute bootstrap-based significance (95% confidence interval) for the FSS.
+    
+    Note: This bootstrap procedure resamples grid cells with replacement,
+    assuming independence. In spatial contexts, a block bootstrap may be more appropriate.
+    
+    Parameters:
+        forecast_values (np.ndarray): Forecast reflectivity values.
+        reference_values (np.ndarray): Observed reflectivity values.
+        threshold (float): Threshold for event detection.
+        window_size (int): Window size for FSS computation.
+        n_bootstrap (int): Number of bootstrap samples.
+        
+    Returns:
+        observed_fss (float): FSS computed from the original fields.
+        ci_lower (float): Lower bound of the 95% confidence interval.
+        ci_upper (float): Upper bound of the 95% confidence interval.
+        bootstrap_distribution (np.ndarray): Array of FSS values from the bootstrap samples.
+    """
+    observed_fss = compute_fss(forecast_values, reference_values, threshold, window_size)
+    bootstrap_distribution = []
+    
+    shape = forecast_values.shape
+    # Flatten arrays for sampling.
+    fcst_flat = forecast_values.flatten()
+    ref_flat = reference_values.flatten()
+    n_points = fcst_flat.size
+    
+    for i in range(n_bootstrap):
+        # Sample indices with replacement.
+        indices = np.random.randint(0, n_points, size=n_points)
+        # Reshape the bootstrap sample back to the original shape.
+        fcst_sample = fcst_flat[indices].reshape(shape)
+        ref_sample = ref_flat[indices].reshape(shape)
+        try:
+            fss_value = compute_fss(fcst_sample, ref_sample, threshold, window_size)
+        except Exception:
+            fss_value = np.nan
+        bootstrap_distribution.append(fss_value)
+    
+    bootstrap_distribution = np.array(bootstrap_distribution)
+    
+    # Compute the 95% confidence interval from the bootstrap distribution.
+    ci_lower = np.nanpercentile(bootstrap_distribution, 2.5)
+    ci_upper = np.nanpercentile(bootstrap_distribution, 97.5)
+    
+    return observed_fss, ci_lower, ci_upper
 

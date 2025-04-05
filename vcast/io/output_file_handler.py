@@ -16,9 +16,10 @@ class OutputFileHandler:
         """
         self.output_file = None
         self.writer = None
-        self.open_output_file(config.output_dir, config.output_filename, config.stat_name)
 
-    def open_output_file(self, output_dir, output_filename, stat_name):
+        self.open_output_file(config.output_dir, config.output_filename, config.stat_name, config.cmem)
+
+    def open_output_file(self, output_dir, output_filename, stat_name, ens):
         """
         Opens the output file for writing.
 
@@ -36,7 +37,11 @@ class OutputFileHandler:
         self.writer = csv.writer(self.output_file, delimiter="\t")
 
         # Prepare the header row
-        header = ["date"]
+        header = ["date", "lead_time"]
+        
+        if ens:
+            header += ["member"]
+
         for stat in stat_name:
             stat_lower = stat.lower()
             if stat_lower in AVAILABLE_VARS:
@@ -57,6 +62,7 @@ class OutputFileHandler:
         if self.writer is None:
             raise ValueError("Output file is not open. Ensure open_output_file() was called successfully.")
         self.writer.writerow(row)
+        self.output_file.flush()
 
     def close_output_file(self):
         """
@@ -66,3 +72,5 @@ class OutputFileHandler:
             self.output_file.close()
             self.output_file = None
             self.writer = None
+            print("Closed.",flush=True)
+

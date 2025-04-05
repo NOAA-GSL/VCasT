@@ -9,6 +9,11 @@ from vcast.io import Preprocessor
 import traceback
 from datetime import timedelta
 import numpy as np
+import logging
+
+
+logging.basicConfig(level=logging.INFO, format='%(asctime)s [%(levelname)s] %(message)s')
+
 
 def process_deterministic_multiprocessing(date, lead_time, member, config):
     """
@@ -30,7 +35,7 @@ def process_deterministic_multiprocessing(date, lead_time, member, config):
         
         fcst_date = date + timedelta(hours=config.shift)
 
-        print(fcst_date, lead_time,flush=True)
+        logging.info(f"Processing {fcst_date} with lead time {lead_time} for member {member}")
 
         # Read forecast and reference data
         fcst_data, flats, flons, ftype = Preprocessor.read_input_data(
@@ -106,12 +111,12 @@ def process_deterministic_multiprocessing(date, lead_time, member, config):
             elif var == 'fss':
                 stats.append(compute_fss(fcst_interpolated_data, ref_interpolated_data, config.var_threshold, config.var_radius))
 
-        print(f"{fcst_date} Done",flush=True)
+        logging.info(f"Completed processing for {fcst_date} with lead time {lead_time} for member {member}")
 
         return stats
 
     except Exception as e:
-        print(f"Error processing {date}: {traceback.format_exc()}")
+        logging.exception(f"Error processing {date}")
         return None  # Return None for failed entries
 
 def process_ensemble_multiprocessing(date,lead_time,config):

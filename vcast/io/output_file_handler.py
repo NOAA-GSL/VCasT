@@ -8,6 +8,7 @@ class OutputFileHandler:
     """
 
     def __init__(self, config):
+        from vcast.io import Preprocessor
         """
         Initializes the OutputFileHandler and opens the output file.
 
@@ -17,9 +18,11 @@ class OutputFileHandler:
         self.output_file = None
         self.writer = None
 
-        self.open_output_file(config.output_dir, config.output_filename, config.stat_name, config.cmem)
+        self.config = Preprocessor.validate_config(config,"stat")
 
-    def open_output_file(self, output_dir, output_filename, stat_name, ens):
+        self.open_output_file()
+
+    def open_output_file(self):
         """
         Opens the output file for writing.
 
@@ -31,6 +34,12 @@ class OutputFileHandler:
         Returns:
             None
         """
+        
+        output_dir = self.config.output_dir
+        output_filename = self.config.output_filename
+        stat_name = self.config.stat_name
+        ens = self.config.cmem
+
         os.makedirs(output_dir, exist_ok=True)
         output_path = os.path.join(output_dir, output_filename)
         self.output_file = open(output_path, 'w', newline='')

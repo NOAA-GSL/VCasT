@@ -7,7 +7,7 @@ from colorama import Fore, Style
 from vcast.stat import ReadStat
 from vcast.plot import LinePlot, Reliability, PerformanceDiagram
 from vcast.processing import process_in_parallel
-from vcast.io import ConfigLoader, OutputFileHandler, FileChecker, Preprocessor
+from vcast.io import ConfigLoader, OutputFileHandler, FileChecker
 
 
 def detect_yaml_config(file_path):
@@ -114,10 +114,8 @@ def handle_statistical_analysis(config):
     print(f"Running statistical analysis...")
 
     output = OutputFileHandler(config)
-
-    config = Preprocessor.validate_config(config,"stat")
             
-    process_in_parallel(config, output)
+    process_in_parallel(output.config, output)
 
     output.close_output_file()
 

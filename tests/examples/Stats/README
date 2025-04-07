@@ -1,5 +1,0 @@
-- all_stats-0001 => Runs VCasT statistics. It compares HRRR Temperature at 2m 1-h forecast against HRRR analysis (grib2 files).
-
-- all_stats-0002 => Same as test 0001, but it applies interpolation.
-
-- all_stats-0003 => Same as test 0002, but it performs the comparison against a netCDF file produced by another model.  

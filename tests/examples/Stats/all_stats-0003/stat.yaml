@@ -1,18 +1,22 @@
 # Date and Time Settings
-start_date: "2024-04-01_03:00:00"  # Start date of the data processing
-end_date: "2024-04-01_03:00:00"    # End date of the data processing
+start_date: "2024-04-01_02:00:00"  # Start date of the data processing
+end_date: "2024-04-01_02:00:00"    # End date of the data processing
 interval_hours: "1"                # Interval for processing (e.g., hourly, 6-hourly)
 
+start_lead_time: 1
+end_lead_time: 1
+interval_lead_time: 1
+
 # Forecast Configuration
-fcst_file_template: "../input_files/REF/ref_{year}{month}{day}{hour}_f001.nc"  # Reference file template
+fcst_file_template: "../input_files/REF/ref_{year}{month}{day}{hour}_f0{lead_time}.nc"  # Reference file template
 fcst_var: "T2M"                    # Forecast variable name
 fcst_level: 2
 fcst_type_of_level: "level"
-shift: -1                          # Time shift (if any)
+shift: 0                          # Time shift (if any)
 
 
 # Reference Configuration
-ref_file_template: "../input_files/HRRR/{cycle}/hrrr.{year}{month}{day}{hour}.wrfprsf00.T2M.grib2"
+ref_file_template: "../input_files/HRRR/hrrr.{valid_year}{valid_month}{valid_day}{valid_hour}.wrfprsf00.T2M.grib2"
 ref_var: "2t"  
 ref_level: 2
 ref_type_of_level: "heightAboveGround" #"heightAboveGround"
@@ -23,6 +27,7 @@ output_dir: "."  # Directory to save outputs
 output_filename: "stat.out"  # Output file template
 
 # Statistical Metrics
+stat_type: "det"
 stat_name:
   - "rmse"
   - "bias"

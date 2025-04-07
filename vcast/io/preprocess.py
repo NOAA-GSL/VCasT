@@ -188,6 +188,7 @@ class Preprocessor:
             
             # Optional: Validate lead time attributes.
             # If any one exists, then all must exist.
+            config.lead_times = range(0,1)
             if (hasattr(config, 'start_lead_time') or 
                 hasattr(config, 'end_lead_time') or 
                 hasattr(config, 'interval_lead_time')):

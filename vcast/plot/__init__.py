@@ -10,5 +10,7 @@ Classes:
 
 from .base_plot import BasePlot
 from .line_plot import LinePlot
+from .reliability import Reliability
+from .performance_diagram import PerformanceDiagram
 
-__all__ = ["BasePlot","LinePlot"]
+__all__ = ["BasePlot","LinePlot", "Reliability", "PerformanceDiagram"]

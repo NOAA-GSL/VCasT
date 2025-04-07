@@ -1,55 +1,111 @@
 import numpy as np
-from scipy.ndimage import convolve
+from scipy.signal import convolve2d
 
-def compute_rmse(forecast_values, reference_values):
+def apply_threshold_mask(forecast_values, reference_values, threshold=None):
+    """
+    Apply a threshold mask to filter data points based on forecast values.
+    
+    If a threshold is provided, only data points where the reference values are greater than 
+    or equal to the threshold are kept.
+
+    Parameters:
+        forecast_values (np.ndarray): Forecasted values of shape (n, m).
+        reference_values (np.ndarray): Reference (observed) values of shape (n, m).
+        threshold (float, optional): A threshold value. Data points in the reference array below this 
+            threshold are ignored.
+
+    Returns:
+        tuple: Filtered forecast_values and reference_values, or (None, None) if no valid points exist.
+
+    Raises:
+        ValueError: If the shapes of the inputs do not match.
+    """
+    if forecast_values.shape != reference_values.shape:
+        raise ValueError("Forecast values and reference values must have the same shape.")
+
+    if threshold is not None:
+        mask = forecast_values >= threshold  # Apply threshold only on reference values
+        if not np.any(mask):
+            return None, None  # No valid data points remain after filtering
+        return forecast_values[mask], reference_values[mask]
+
+    return forecast_values, reference_values
+
+def compute_mse(forecast_values, reference_values, threshold=None):
+    """
+    Compute the Mean Squared Error (MSE) between forecast values and reference values.
+    
+    If a threshold is provided, only data points where the reference values are greater than 
+    or equal to the threshold are used in the calculation.
+    
+    Parameters:
+        forecast_values (np.ndarray): Forecasted values of shape (n, m).
+        reference_values (np.ndarray): Reference (observed) values of shape (n, m).
+        threshold (float, optional): A threshold value. Data points in the reference array below this 
+            threshold are ignored.
+
+    Returns:
+        float or np.nan: The MSE value, or np.nan if no valid data points exist.
+    """
+    forecast_values, reference_values = apply_threshold_mask(forecast_values, reference_values, threshold)
+
+    if forecast_values is None or reference_values is None:
+        return np.nan  # Return np.nan if no valid data points remain
+
+    # Compute MSE
+    differences = forecast_values - reference_values
+    mse = np.mean(np.square(differences))
+
+    return mse
+
+def compute_rmse(forecast_values, reference_values, threshold=None):
     """
     Calculate the Root Mean Square Error (RMSE) between forecast values and reference values.
-
+    
+    If a threshold is provided, only data points where the reference values are greater than 
+    or equal to the threshold are used in the calculation.
+    
     Parameters:
-    forecast_values (np.ndarray): Forecasted values of shape (n, m).
-    reference_values (np.ndarray): Reference values of shape (n, m).
+        forecast_values (np.ndarray): Forecasted values of shape (n, m).
+        reference_values (np.ndarray): Reference (observed) values of shape (n, m).
+        threshold (float, optional): A threshold value. Data points in the reference array below this 
+            threshold are ignored.
+            
+    Returns:
+        float or np.nan: The RMSE value, or np.nan if no valid data points exist.
+    """
+    mse = compute_mse(forecast_values, reference_values, threshold)
+
+    return np.sqrt(mse) if not np.isnan(mse) else np.nan
+
+def compute_bias(forecast_values, reference_values, threshold=None):
+    """
+    Compute the Bias between forecast values and reference values.
+    
+    Bias is defined as the mean difference between forecast and reference values.
+    If a threshold is provided, only data points where the reference values are greater than 
+    or equal to the threshold are used in the calculation.
+    
+    Parameters:
+        forecast_values (np.ndarray): Forecasted values of shape (n, m).
+        reference_values (np.ndarray): Reference (observed) values of shape (n, m).
+        threshold (float, optional): A threshold value. Data points in the reference array below this 
+            threshold are ignored.
 
     Returns:
-    float: The RMSE value.
-
-    Raises:
-    ValueError: If the shapes of the inputs do not match.
+        float or np.nan: The bias value (mean difference), or np.nan if no valid data points exist.
     """
-    # Check if the shapes match
-    if forecast_values.shape != reference_values.shape:
-        raise ValueError("Forecast values and reference values must have the same shape.")
+    forecast_values, reference_values = apply_threshold_mask(forecast_values, reference_values, threshold)
 
-    # Calculate RMSE
-    differences = forecast_values - reference_values
-    squared_differences = np.square(differences)
-    mean_squared_error = np.mean(squared_differences)
-    rmse = np.sqrt(mean_squared_error)
+    if forecast_values is None or reference_values is None:
+        return np.nan  # Return np.nan if no valid data points remain
 
-    return rmse
-
-def compute_bias(forecast_values, reference_values):
-    """
-    Calculate the bias between forecast values and reference values.
-
-    Parameters:
-    forecast_values (np.ndarray): Forecasted values of shape (n, m).
-    reference_values (np.ndarray): Reference values of shape (n, m).
-
-    Returns:
-    float: The bias value.
-
-    Raises:
-    ValueError: If the shapes of the inputs do not match.
-    """
-    # Check if the shapes match
-    if forecast_values.shape != reference_values.shape:
-        raise ValueError("Forecast values and reference values must have the same shape.")
-
-    # Calculate bias
+    # Compute bias as the mean of the differences (forecast - reference)
     differences = forecast_values - reference_values
     bias = np.mean(differences)
 
     return bias
+
 
 def compute_quantiles(forecast_values, reference_values):
     """
@@ -119,7 +175,7 @@ def compute_mae(forecast_values, reference_values):
     return np.mean(np.abs(forecast_values - reference_values))
 
 
-def compute_scores(fcst_data, ref_data, var_threshold, radius=None):
+def compute_scores(fcst_data, ref_data, var_threshold, radius=0):
     """
     Calculate hits, misses, false alarms, and correct rejections based on forecast and reference data.
     Handles both local grid point comparisons and grid radius of influence.
@@ -374,56 +430,139 @@ def compute_stdev(forecast_values, reference_values):
     # Compute and return the standard deviation of forecast values
     return np.std(forecast_values)
 
-def compute_fss(forecast_values, reference_values, threshold, neighborhood_size):
+def compute_fss(forecast_values, reference_values, threshold, window_size):
     """
     Compute the Fractions Skill Score (FSS) for spatial forecasts.
 
     Parameters:
-    forecast_values (np.ndarray): Forecasted values of shape (n, m).
-    reference_values (np.ndarray): Reference values of shape (n, m).
-    threshold (float): The threshold above which an event is considered significant.
-    neighborhood_size (int): Size of the neighborhood for fraction computation (e.g., radius in grid points).
+    forecast_values (np.ndarray): Forecasted reflectivity values of shape (n, m).
+    reference_values (np.ndarray): Observed reflectivity values of shape (n, m).
+    threshold (float): The reflectivity threshold above which an event is defined (e.g., 40 dBZ).
+    window_size (int): Size of the window for fraction computation (e.g., 5 for a 5x5 grid box).
 
     Returns:
-    float: The FSS value.
+    float: The computed FSS value.
 
     Raises:
-    ValueError: If the shapes of the inputs do not match or the neighborhood size is invalid.
+    ValueError: If the shapes of the inputs do not match or the window size is invalid.
     """
-
     if forecast_values.shape != reference_values.shape:
         raise ValueError("Forecast values and reference values must have the same shape.")
-    if neighborhood_size <= 0:
-        raise ValueError("Neighborhood size must be greater than zero.")
+    if window_size <= 0:
+        raise ValueError("Window size must be greater than zero.")
 
-    # Create binary masks for the threshold
-    fcst_binary = forecast_values >= threshold
-    ref_binary = reference_values >= threshold
+    # Convert both forecast and reference fields to binary events (1 if >= threshold, else 0)
+    fcst_binary = (forecast_values >= threshold).astype(float)
+    ref_binary = (reference_values >= threshold).astype(float)
+
+    # If neither field contains events, FSS cannot be computed
+    if not (np.any(fcst_binary) or np.any(ref_binary)):
+        return np.nan
 
     # Define the kernel for neighborhood averaging
-    kernel = np.ones((neighborhood_size, neighborhood_size))
+    kernel = np.ones((window_size, window_size), dtype=float)
 
-    # Compute fractions using 2D convolution
-    fcst_fractions = convolve(fcst_binary.astype(float), kernel, mode='constant', cval=0)
-    ref_fractions = convolve(ref_binary.astype(float), kernel, mode='constant', cval=0)
+    # Compute the fraction of event occurrence in the neighborhood using 2D convolution
+    fcst_fractions = convolve2d(fcst_binary, kernel, mode='same', boundary='fill', fillvalue=0)
+    ref_fractions = convolve2d(ref_binary, kernel, mode='same', boundary='fill', fillvalue=0)
 
-    # Normalize fractions to account for kernel area
-    kernel_area = neighborhood_size ** 2
+    # Normalize the fractions by the area of the kernel
+    kernel_area = window_size ** 2
     fcst_fractions /= kernel_area
     ref_fractions /= kernel_area
 
-    # Compute the mean square difference of fractions
+    # Calculate the mean square error (MSE) between the forecast and reference fractions
     mse_fractions = np.mean((fcst_fractions - ref_fractions) ** 2)
 
-    # Compute the reference MSE
-    ref_mse = np.mean(ref_fractions ** 2) + np.mean(fcst_fractions ** 2)
-
-    # Handle case where ref_mse is zero
+    # Compute the reference MSE (the worst-case scenario)
+    ref_mse = np.mean(fcst_fractions**2) + np.mean(ref_fractions**2)
     if ref_mse == 0:
         return np.nan
 
-    # Calculate FSS
+    # Compute FSS: 1 indicates perfect skill, 0 indicates no skill
     fss = 1 - mse_fractions / ref_mse
     return fss
 
+def fss_monte_carlo_significance(forecast_values, reference_values, threshold, window_size, n_iterations=1000):
+    """
+    Compute the Monte Carlo significance of the observed FSS.
+    
+    Parameters:
+        forecast_values (np.ndarray): Forecast reflectivity values.
+        reference_values (np.ndarray): Observed reflectivity values.
+        threshold (float): Threshold for event detection.
+        window_size (int): Window size for FSS computation.
+        n_iterations (int): Number of Monte Carlo iterations.
+        
+    Returns:
+        observed_fss (float): FSS computed from the original fields.
+        p_value (float): Fraction of Monte Carlo samples with FSS equal to or greater than the observed FSS.
+        null_distribution (np.ndarray): Array of FSS values from the Monte Carlo runs.
+    """
+    # Compute observed FSS
+    observed_fss = compute_fss(forecast_values, reference_values, threshold, window_size)
+    
+    null_distribution = []
+    # For each iteration, shuffle the forecast field to break spatial structure.
+    for i in range(n_iterations):
+        # Shuffle the forecast values; flatten then reshape to preserve original shape.
+        shuffled_fcst = np.random.permutation(forecast_values.flatten()).reshape(forecast_values.shape)
+        fss_value = compute_fss(shuffled_fcst, reference_values, threshold, window_size)
+        null_distribution.append(fss_value)
+    
+    null_distribution = np.array(null_distribution)
+    
+    # Compute p-value: fraction of shuffled FSS values equal to or exceeding the observed FSS.
+    p_value = np.mean(null_distribution >= observed_fss)
+    
+    return observed_fss, p_value, null_distribution
+
+def fss_bootstrap_significance(forecast_values, reference_values, threshold, window_size, n_bootstrap=1000):
+    """
+    Compute bootstrap-based significance (95% confidence interval) for the FSS.
+    
+    Note: This bootstrap procedure resamples grid cells with replacement,
+    assuming independence. In spatial contexts, a block bootstrap may be more appropriate.
+    
+    Parameters:
+        forecast_values (np.ndarray): Forecast reflectivity values.
+        reference_values (np.ndarray): Observed reflectivity values.
+        threshold (float): Threshold for event detection.
+        window_size (int): Window size for FSS computation.
+        n_bootstrap (int): Number of bootstrap samples.
+        
+    Returns:
+        observed_fss (float): FSS computed from the original fields.
+        ci_lower (float): Lower bound of the 95% confidence interval.
+        ci_upper (float): Upper bound of the 95% confidence interval.
+        bootstrap_distribution (np.ndarray): Array of FSS values from the bootstrap samples.
+    """
+    observed_fss = compute_fss(forecast_values, reference_values, threshold, window_size)
+    bootstrap_distribution = []
+    
+    shape = forecast_values.shape
+    # Flatten arrays for sampling.
+    fcst_flat = forecast_values.flatten()
+    ref_flat = reference_values.flatten()
+    n_points = fcst_flat.size
+    
+    for i in range(n_bootstrap):
+        # Sample indices with replacement.
+        indices = np.random.randint(0, n_points, size=n_points)
+        # Reshape the bootstrap sample back to the original shape.
+        fcst_sample = fcst_flat[indices].reshape(shape)
+        ref_sample = ref_flat[indices].reshape(shape)
+        try:
+            fss_value = compute_fss(fcst_sample, ref_sample, threshold, window_size)
+        except Exception:
+            fss_value = np.nan
+        bootstrap_distribution.append(fss_value)
+    
+    bootstrap_distribution = np.array(bootstrap_distribution)
+    
+    # Compute the 95% confidence interval from the bootstrap distribution.
+    ci_lower = np.nanpercentile(bootstrap_distribution, 2.5)
+    ci_upper = np.nanpercentile(bootstrap_distribution, 97.5)
+    
+    return observed_fss, ci_lower, ci_upper
 

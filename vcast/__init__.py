@@ -19,6 +19,7 @@ Modules:
 from .io import ConfigLoader, OutputFileHandler, FileChecker, Preprocessor
 from .processing import process_in_parallel, interpolate_to_target_grid
 from .stat import ReadStat
+from .plot import BasePlot, LinePlot, Reliability, PerformanceDiagram
 
 __all__ = [
     "ConfigLoader",
@@ -27,5 +28,9 @@ __all__ = [
     "Preprocessor",
     "process_in_parallel",
     "interpolate_to_target_grid",
-    "ReadStat"
+    "ReadStat",
+    "BasePlot", 
+    "LinePlot", 
+    "Reliability", 
+    "PerformanceDiagram"
 ]

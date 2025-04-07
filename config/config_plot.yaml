@@ -1,3 +1,9 @@
+start_date: 2024-04-01_03:00:00
+end_date: 2024-04-07_03:00:00
+interval: 1
+
+scale: 1
+
 plot_type: line
 vars:
   - gss: "../test_agg.data"
@@ -82,6 +88,7 @@ line_width:
 - 1
 - 1.2
 
+average: true
 
 output_filename: GSS_APCP_03.png
 

@@ -6,16 +6,44 @@ from vcast.stat import compute_bias, compute_correlation, compute_csi, compute_f
                        compute_scores,compute_stdev,compute_success_ratio, compute_fbias
 from vcast.stat import compute_fss_ensemble, compute_reliability
 from vcast.io import Preprocessor
-import traceback
 from datetime import timedelta
 import numpy as np
 import logging
+import math
+
+def truncate_to_10_decimals(value):
+    """
+    Truncate a number or a list of numbers to 10 decimal places without rounding.
+    If the value is NaN, returns NaN.
+    
+    Args:
+        value (int, float, np.floating, or list): A numeric value or a list of numeric values.
+        
+    Returns:
+        A number truncated to 10 decimal places, or a list of such numbers.
+    
+    Raises:
+        TypeError: If value is not a number or a list of numbers.
+    """
+    def _truncate(num):
+        # Convert num to a regular Python float.
+        num_f = float(num)
+        if math.isnan(num_f):
+            return num_f  # Return nan as is
+        return math.trunc(num_f * 1e10) / 1e10
+
+    if isinstance(value, list):
+        return [truncate_to_10_decimals(item) for item in value]
+    elif isinstance(value, (int, float, np.floating)):
+        return _truncate(value)
+    else:
+        raise TypeError("Input must be a number or a list of numbers.")
 
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s [%(levelname)s] %(message)s')
 
 
-def process_deterministic_multiprocessing(date, lead_time, member, config):
+def process_deterministic_multiprocessing(date, lead_time, member, test, config):
     """
     Processes a single date entry in parallel using multiprocessing.
     
@@ -79,31 +107,40 @@ def process_deterministic_multiprocessing(date, lead_time, member, config):
         # Add computed statistics
         for var in config.stat_name:
             if var == 'rmse':
-                stats.append(compute_rmse(fcst_interpolated_data, ref_interpolated_data, threshold))
+                tstat = compute_rmse(fcst_interpolated_data, ref_interpolated_data, threshold)
             elif var == 'bias':
-                stats.append(compute_bias(fcst_interpolated_data, ref_interpolated_data, threshold))
+                tstat = compute_bias(fcst_interpolated_data, ref_interpolated_data, threshold)
             elif var == 'quantiles':
-                stats.extend(compute_quantiles(fcst_interpolated_data, ref_interpolated_data))
+                tstat = compute_quantiles(fcst_interpolated_data, ref_interpolated_data)
             elif var == 'mae':
-                stats.append(compute_mae(fcst_interpolated_data, ref_interpolated_data))
+                tstat = compute_mae(fcst_interpolated_data, ref_interpolated_data)
             elif var == 'corr':
-                stats.append(compute_correlation(fcst_interpolated_data, ref_interpolated_data))
+                tstat = compute_correlation(fcst_interpolated_data, ref_interpolated_data)
             elif var == 'stdev':
-                stats.append(compute_stdev(fcst_interpolated_data, ref_interpolated_data))
+                tstat = compute_stdev(fcst_interpolated_data, ref_interpolated_data)
             elif var == 'gss':
-                stats.append(compute_gss(hits, misses, false_alarms, total_events))
+                tstat = compute_gss(hits, misses, false_alarms, total_events)
             elif var == 'fbias':
-                stats.append(compute_fbias(hits, false_alarms, misses))
+                tstat = compute_fbias(hits, false_alarms, misses)
             elif var == 'pod':
-                stats.append(compute_pod(hits, misses))
+                tstat = compute_pod(hits, misses)
             elif var == 'far':
-                stats.append(compute_far(hits, false_alarms))
+                tstat = compute_far(hits, false_alarms)
             elif var == 'csi':
-                stats.append(compute_csi(hits, misses, false_alarms))
+                tstat = compute_csi(hits, misses, false_alarms)
             elif var == 'sr':
-                stats.append(compute_success_ratio(hits, false_alarms))
+                tstat = compute_success_ratio(hits, false_alarms)
             elif var == 'fss':
-                stats.append(compute_fss(fcst_interpolated_data, ref_interpolated_data, config.var_threshold, config.var_radius))
+                tstat = compute_fss(fcst_interpolated_data, ref_interpolated_data, config.var_threshold, config.var_radius)
+
+            if test:
+                tstat = truncate_to_10_decimals(tstat)
+    
+            if isinstance(tstat, list):
+                stats.extend(tstat)
+            elif isinstance(tstat, (int, float)):
+                stats.append(tstat)
+                    
 
         logging.info(f"Completed processing for {fcst_date} with lead time {lead_time} for member {member}")
 
@@ -153,14 +190,14 @@ def process_ensemble_multiprocessing(date,lead_time,config):
             ensembles_arr = np.array(ensembles)
             
             if 'fss' in ustat_name:
-                stats.append(compute_fss_ensemble(ensembles_arr, ref_interpolated_data, config.var_threshold, config.var_radius))
+                tstat = compute_fss_ensemble(ensembles_arr, ref_interpolated_data, config.var_threshold, config.var_radius)
         
             if "reliability" in ustat_name:
-                stats.append(compute_reliability(ensembles_arr, ref_interpolated_data, config.var_threshold))
+                tstat = compute_reliability(ensembles_arr, ref_interpolated_data, config.var_threshold)
 
             return stats
 
-def process_in_parallel(config, output):
+def process_in_parallel(config, output, test):
     """
     Process all dates in parallel using multiprocessing.
     
@@ -181,7 +218,7 @@ def process_in_parallel(config, output):
         for date in dates:
             for lead_time in config.lead_times:
                 for member in config.members:    
-                    task = (date,lead_time,member)
+                    task = (date,lead_time,member,test)
                     tasks.append(task)
 
     elif config.stat_type == "ens":

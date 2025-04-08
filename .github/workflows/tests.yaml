@@ -1,4 +1,4 @@
-name: Run Tests
+name: Run Core Tests
 
 on:
   pull_request:
@@ -20,6 +20,11 @@ jobs:
         uses: actions/checkout@v3
         with:
           submodules: true
+          fetch-depth: 0  
+
+      - name: Update submodules to latest main branch
+        run: |
+          git submodule update --init --recursive --remote
 
       - name: Set up Python
         uses: actions/setup-python@v4

@@ -25,12 +25,13 @@ def interpolate_to_target_grid(src_data, src_lats, src_lons, target_file):
     """
 
     fc = FileChecker(target_file)    
-
-    if 'netcdf' in fc.identify_file_type():
+    file_type = fc.identify_file_type()
+ 
+    if 'netcdf' in file_type:
         stype = 'netcdf'
-    elif 'grib2' in fc.identify_file_type():
+    elif 'grib2' in file_type:
         stype = 'grib2'
-    elif 'zarr' in fc.identify_file_type():
+    elif 'zarr' in file_type:
         stype = 'zarr'            
     else:
         raise Exception("Error: File format unknown.")    
@@ -64,6 +65,12 @@ def interpolate_to_target_grid(src_data, src_lats, src_lons, target_file):
     else:
         msg = ds.message(1)
         _, target_lats, target_lons = msg.data()
+
+    if np.min(target_lons) < 0:
+        target_lons[target_lons < 0] += 360  # Convert from [-180, 180] to [0, 360]
+
+    if np.min(src_lons) < 0:
+        src_lons[src_lons < 0] += 360  # Convert from [-180, 180] to [0, 360]
 
     # Close the dataset to free resources
     ds.close()

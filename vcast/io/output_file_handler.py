@@ -81,5 +81,3 @@ class OutputFileHandler:
             self.output_file.close()
             self.output_file = None
             self.writer = None
-            print("Closed.",flush=True)
-

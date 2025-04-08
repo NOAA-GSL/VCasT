@@ -483,6 +483,76 @@ def compute_fss(forecast_values, reference_values, threshold, window_size):
     fss = 1 - mse_fractions / ref_mse
     return fss
 
+def compute_brier_score(forecast_values, reference_values, threshold, window_size, probability_type='binary'):
+    """
+    Compute the Brier Score for probabilistic forecasts with optional spatial pooling.
+    
+    Parameters:
+        forecast_values (np.ndarray): Forecasted values of shape (n, m).
+        reference_values (np.ndarray): Reference values of shape (n, m).
+        threshold (float): Threshold above which forecast values are considered significant.
+        probability_type (str): Specifies how to compute forecast probabilities. 
+                                Options are:
+                                - 'raw': Uses normalized forecast values as probabilities.
+                                - 'binary': Uses binary classification (0 or 1) after thresholding.
+                                - 'sigmoid': Uses a sigmoid function to convert forecast values to probabilities.
+                                - 'softmax': Uses softmax normalization for probabilistic outputs.
+        window_size (int): Size of the pooling window for smoothing probabilities. Must be >= 1.
+    
+    Returns:
+        float or np.nan: The computed Brier Score or np.nan if no valid data points remain.
+    """
+    if window_size < 1:
+        raise ValueError("Window size must be greater than or equal to 1.")
+    
+    # Ensure inputs are numpy arrays
+    forecast_values = np.asarray(forecast_values)
+    reference_values = np.asarray(reference_values)
+
+    # Check for shape match
+    if forecast_values.shape != reference_values.shape:
+        raise ValueError("Forecast values and reference outcomes must have the same shape.")
+    
+    # Apply thresholding to create a binary reference outcome (0 or 1)
+    reference_outcomes = (reference_values >= threshold).astype(int)
+    
+    # Compute forecast probabilities based on the specified type
+    if probability_type == 'raw':
+        # Normalize forecast values to the range [0, 1]
+        min_val = np.min(forecast_values)
+        max_val = np.max(forecast_values)
+        if max_val == min_val:
+            return np.nan  # Avoid division by zero
+        forecast_probabilities = (forecast_values - min_val) / (max_val - min_val)
+
+    elif probability_type == 'binary':
+        # Convert forecast values to binary (0 or 1) based on the threshold
+        forecast_probabilities = (forecast_values >= threshold).astype(int)
+
+    elif probability_type == 'sigmoid':
+        # Apply a sigmoid function to convert forecast values to probabilities
+        forecast_probabilities = 1 / (1 + np.exp(-forecast_values))
+
+    elif probability_type == 'softmax':
+        # Apply softmax normalization
+        exp_values = np.exp(forecast_values - np.max(forecast_values))
+        forecast_probabilities = exp_values / np.sum(exp_values)
+
+    else:
+        raise ValueError("Invalid probability_type. Choose from 'raw', 'binary', 'sigmoid', 'softmax'.")
+    
+    # Apply spatial pooling using convolution (if window_size > 1)
+    if window_size > 1:
+        kernel = np.ones((window_size, window_size)) / (window_size ** 2)
+        forecast_probabilities = convolve2d(forecast_probabilities, kernel, mode='same', boundary='fill', fillvalue=0)
+        reference_outcomes = convolve2d(reference_outcomes, kernel, mode='same', boundary='fill', fillvalue=0)
+
+    # Calculate the Brier Score
+    brier_score = np.mean((forecast_probabilities - reference_outcomes) ** 2)
+
+    return brier_score
+
+
 def fss_monte_carlo_significance(forecast_values, reference_values, threshold, window_size, n_iterations=1000):
     """
     Compute the Monte Carlo significance of the observed FSS.

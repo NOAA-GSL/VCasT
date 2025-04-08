@@ -13,30 +13,32 @@ import math
 
 def truncate_to_10_decimals(value):
     """
-    Truncate a number or a list of numbers to 10 decimal places.
+    Truncate a number or a list of numbers to 10 decimal places without rounding.
+    If the value is NaN, returns NaN.
     
     Args:
-        value (int, float, or list): A numeric value or a list of numeric values.
+        value (int, float, np.floating, or list): A numeric value or a list of numeric values.
         
     Returns:
-        A number truncated to 10 decimal places if value is a number,
-        or a list of numbers each truncated to 10 decimal places if value is a list.
+        A number truncated to 10 decimal places, or a list of such numbers.
     
     Raises:
         TypeError: If value is not a number or a list of numbers.
     """
     def _truncate(num):
-        # Multiply by 1e10, truncate the fractional part, and then divide back.
-        return math.trunc(num * 1e10) / 1e10
+        # Convert num to a regular Python float.
+        num_f = float(num)
+        if math.isnan(num_f):
+            return num_f  # Return nan as is
+        return math.trunc(num_f * 1e10) / 1e10
 
     if isinstance(value, list):
-        # If the input is a list, process each element recursively.
         return [truncate_to_10_decimals(item) for item in value]
-    elif isinstance(value, (int, float)):
-        # Process a single number.
+    elif isinstance(value, (int, float, np.floating)):
         return _truncate(value)
     else:
         raise TypeError("Input must be a number or a list of numbers.")
+
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s [%(levelname)s] %(message)s')
 

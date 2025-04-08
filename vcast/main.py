@@ -103,7 +103,7 @@ def handle_plotting(config):
 
     sys.exit(0)
 
-def handle_statistical_analysis(config):
+def handle_statistical_analysis(config, test):
     """
     Handles statistical analysis using multiprocessing.
 
@@ -115,7 +115,7 @@ def handle_statistical_analysis(config):
 
     output = OutputFileHandler(config)
             
-    process_in_parallel(output.config, output)
+    process_in_parallel(output.config, output, test)
 
     output.close_output_file()
 
@@ -135,6 +135,12 @@ def main():
         )
     )
 
+    parser.add_argument(
+        "--test-mode",
+        action="store_true",
+        help="Run the VCasT in test mode."
+    )
+
     args = parser.parse_args()
 
     if not os.path.exists(args.file_path):
@@ -149,7 +155,7 @@ def main():
         elif action == "plot":
             handle_plotting(config)
         elif action == "stats":
-            handle_statistical_analysis(config)
+            handle_statistical_analysis(config, args.test_mode)
 
     # **Step 2: If not YAML, try checking if it's NetCDF or GRIB2**
     print(f"Attempting to detect file format for: {args.file_path} ...")

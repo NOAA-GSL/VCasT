@@ -50,12 +50,6 @@ def process_deterministic_multiprocessing(date, lead_time, member, config):
                 raise ValueError("For 3D forecast data, config.time must be provided.")
             fcst_data = fcst_data[config.time]
             ref_data = ref_data[config.time]
-        
-        # Adjust longitude ranges if necessary
-        if 'grib2' in rtype:
-            rlons += 360.
-        if 'grib2' in ftype:
-            flons += 360.
 
         # Apply interpolation if enabled
         if config.interpolation:

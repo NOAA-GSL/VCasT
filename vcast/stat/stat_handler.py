@@ -17,6 +17,12 @@ class ReadStat:
             format='%(asctime)s - %(levelname)s - %(message)s'
         )
 
+        self.config = config
+
+    def run_all(self):
+        
+        config = self.config
+
         logging.info("Initializing ReadStat with config: %s", config)
         if config.line_type.lower() not in AVAILABLE_LINE_TYPES:
             logging.error("Line type %s not recognized.", config.line_type)
@@ -108,13 +114,25 @@ class ReadStat:
             self.save_dataframe(df, config.output_plot_file)
     
         if config.aggregate:
-            df = self.aggregation(df, config.group_by)
+            self.run_aggregation(df, add_columns)
+
+
+    def run_aggregation(self, arg, add_columns = None):
+            
+            if not isinstance(arg, pd.DataFrame):
+                df = pd.read_csv(arg, sep="\t")
+            
             logging.info("DataFrame shape after aggregation: %s", df.shape)
-            if config.line_type.lower() == "ecnt" and "ratio" in add_columns:
-                df['ratio'] = df['spread_plus_oerr'] / df['rmse']
-                logging.debug("Calculated 'ratio' as spread_plus_oerr / rmse.")
-            logging.info("Saving aggregated file to %s.", config.output_agg_file)
-            self.save_dataframe(df, config.output_agg_file)
+
+            df = self.aggregation(df, self.config.group_by)
+            
+            if add_columns is not None:
+                if self.config.line_type.lower() == "ecnt" and "ratio" in add_columns:
+                    df['ratio'] = df['spread_plus_oerr'] / df['rmse']
+                    logging.debug("Calculated 'ratio' as spread_plus_oerr / rmse.")
+
+            logging.info("Saving aggregated file to %s.", self.config.output_agg_file)
+            self.save_dataframe(df, self.config.output_agg_file)
 
     def all_columns(self, line_type, line_type_columns=cn.LINE_TYPE_COLUMNS):
         # Get the additional columns based on line type, or an empty list if not found

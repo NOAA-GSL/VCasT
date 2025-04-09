@@ -117,15 +117,15 @@ class ReadStat:
             self.run_aggregation(df, add_columns)
 
 
-    def run_aggregation(self, arg, add_columns = None):
+    def run_aggregation(self, df, add_columns = None):
             
-            if not isinstance(arg, pd.DataFrame):
-                df = pd.read_csv(arg, sep="\t")
+            if not isinstance(df, pd.DataFrame):
+                df = pd.read_csv(df, sep="\t")
             
             logging.info("DataFrame shape after aggregation: %s", df.shape)
 
             df = self.aggregation(df, self.config.group_by)
-            
+
             if add_columns is not None:
                 if self.config.line_type.lower() == "ecnt" and "ratio" in add_columns:
                     df['ratio'] = df['spread_plus_oerr'] / df['rmse']

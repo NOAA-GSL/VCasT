@@ -1,0 +1,3 @@
+input_file: "./T2M.data" 
+group_by: ["member","lead_time"]
+output_agg_file: "./T2M_agg.data"

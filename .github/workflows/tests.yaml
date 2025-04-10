@@ -36,8 +36,3 @@ jobs:
       - name: Run workflow tests
         run: |
           pytest -v --maxfail=5 --disable-warnings
-
-      - name: Run test stats
-        run: |
-          pytest -v tests/test_stats/ --maxfail=5 --disable-warnings
-

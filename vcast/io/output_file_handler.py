@@ -46,10 +46,10 @@ class OutputFileHandler:
         self.writer = csv.writer(self.output_file, delimiter="\t")
 
         # Prepare the header row
-        header = ["date", "lead_time"]
+        header = ["date", "fcst_lead"]
         
         if ens:
-            header += ["member"]
+            header += ["model"]
 
         for stat in stat_name:
             stat_lower = stat.lower()

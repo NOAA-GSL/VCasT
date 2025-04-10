@@ -163,15 +163,21 @@ def compute_mae(forecast_values, reference_values):
     Compute Mean Absolute Error (MAE) between forecast and reference values.
 
     Parameters:
-    - forecast_values (numpy.ndarray): Array of forecasted values.
-    - reference_values (numpy.ndarray): Array of observed/reference values.
+    - forecast_values (np.ndarray): Forecasted values.
+    - reference_values (np.ndarray): Reference values.
 
     Returns:
-    - float: The Mean Absolute Error (MAE), which is the average of the absolute differences 
-             between forecasted and observed values.
-    """
+    - float: MAE value.
 
-    # Calculate the absolute differences and compute their mean
+    Raises:
+    - ValueError: If shapes do not match.
+    """
+    forecast_values = np.asarray(forecast_values)
+    reference_values = np.asarray(reference_values)
+
+    if forecast_values.shape != reference_values.shape:
+        raise ValueError("Forecast values and reference values must have the same shape.")
+
     return np.mean(np.abs(forecast_values - reference_values))
 
 

@@ -39,5 +39,5 @@ jobs:
 
       - name: Run test stats
         run: |
-          pytest -v test_stats/ --maxfail=5 --disable-warnings
+          pytest -v tests/test_stats/ --maxfail=5 --disable-warnings
 

@@ -88,6 +88,8 @@ class LinePlot(BasePlot):
         if var not in data.columns:
             raise ValueError(f"Variable '{var}' not found in the file {file}.")
                 
+        y_values = data[var]
+
         # Build x-values: Always use date
         if "date" in data.columns:
             # Convert the date column using the expected format (adjust format if needed)
@@ -110,8 +112,8 @@ class LinePlot(BasePlot):
         else:
             raise ValueError(f"'date' column not found in the file {file}.")
 
-        # Extract y-values from the merged DataFrame.
-        y_values = data[var]
+        if len(y_values) != len(x_values):
+            raise Exception("ERROR: x and y dimensions are different, likely due to date settings.")
 
         # Optionally set custom x-ticks if provided.
         if self.config.xticks:

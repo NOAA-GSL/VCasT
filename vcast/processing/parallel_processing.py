@@ -74,10 +74,8 @@ def process_deterministic_multiprocessing(date, lead_time, member, test, config)
         )
 
         if fcst_data.ndim == 3:
-            if not hasattr(config, 'time') or config.time is None:
-                raise ValueError("For 3D forecast data, config.time must be provided.")
-            fcst_data = fcst_data[config.time]
-            ref_data = ref_data[config.time]
+            fcst_data = fcst_data[lead_time]
+            ref_data = ref_data[lead_time]
 
         # Apply interpolation if enabled
         if config.interpolation:
@@ -138,10 +136,9 @@ def process_deterministic_multiprocessing(date, lead_time, member, test, config)
     
             if isinstance(tstat, list):
                 stats.extend(tstat)
-            elif isinstance(tstat, (int, float)):
+            else:
                 stats.append(tstat)
-                    
-
+            
         logging.info(f"Completed processing for {fcst_date} with lead time {lead_time} for member {member}")
 
         return stats

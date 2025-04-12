@@ -15,7 +15,20 @@ class BasePlot:
         """
         Save the plot to a file.
         """
-        self.ax.legend(title=self.config.legend_title, fontsize='medium', shadow=True)
+
+        if hasattr(self.config, "legend_style"):
+            if self.config.legend_style:
+                self.ax.legend(
+                    title=self.config.legend_title,
+                    fontsize='medium',
+                    shadow=True,
+                    loc='center left',
+                    bbox_to_anchor=(1, 0.5)
+                )
+        else:
+            self.ax.legend(title=self.config.legend_title, fontsize='medium', shadow=True)
+
+
         plt.savefig(self.config.output_filename, bbox_inches='tight')
         plt.close()
         logging.info(f"Plot saved to {self.config.output_filename}")

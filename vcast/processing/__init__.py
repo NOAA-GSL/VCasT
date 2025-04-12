@@ -12,5 +12,7 @@ Modules:
 
 from .interpolation import interpolate_to_target_grid
 from .parallel_processing import process_in_parallel
+from .postprocessing import StatiscalSignificance
 
-__all__ = ["process_in_parallel", "interpolate_to_target_grid"]
+__all__ = ["process_in_parallel", "interpolate_to_target_grid",
+           "StatiscalSignificance"]

@@ -1,103 +1,68 @@
-start_date: 2024-04-01_03:00:00
-end_date: 2024-04-07_03:00:00
-interval: 1
+start_date: "2024-04-01_02:00:00"  # Start date of the data processing
+end_date: "2024-07-30_00:00:00"
+interval_hours: "1"                # Interval for processing (e.g., hourly, 6-hourly)
 
+average: 
 scale: 1
 
+significance: True
+ci: True
+
+
 plot_type: line
+
+unique:
+
+fcst_var:
+
+legend_style: True
+
 vars:
-  - gss: "../test_agg.data"
-  - gss: "../test_agg.data"
-  - gss: "../test_agg.data"
-  - gss: "../test_agg.data"
-  - gss: "../test_agg.data"
-  - gss: "../test_agg.data"
-  - gss: "../test_agg.data"
-  - gss: "../test_agg.data"
-  - gss: "../test_agg.data"
-  - gss: "../test_agg.data"
-  - gss: "../test_agg_all.data"
 
-unique: model
-
+  - observed_diff: "./T2M_sign-ens_0.data"
+  - observed_diff: "./T2M_sign-ens_1.data"
+  - observed_diff: "./T2M_sign-ens_2.data"
+  - observed_diff: "./T2M_sign-ens_3.data"
 # General plot parameters
-plot_title: APCP_03
-legend_title: Model
+plot_title: "Temperature at 2m - (EnKF - blending)"
+legend_title: "Model"
 labels:
-- "mem01"
-- "mem02"
-- "mem03"
-- "mem04"
-- "mem05"
-- "mem06"
-- "mem07"
-- "mem08"
-- "mem09"
-- "mem10"
-- "average"
+  - "ens_0"
+  - "ens_1"
+  - "ens_2"
+  - "ens_3"
 
 line_color:
-- "green"
-- "red"
-- "blue"
-- "orange"
-- "purple"
-- "cyan"
-- "blue"
-- "orange"
-- "purple"
-- "cyan"
-- "black"
+  - "red"
+  - "green"
+  - "orange"
+  - "blue"
 
 line_marker:
-- "o"
-- "^"
-- "s"
-- "p"
-- "*"
-- "h"
-- "d"
-- "v"
-- "8"
-- "<"
-- "o"
+  - "x"
+  - "x"
+  - "x"
+  - "x"
 
 line_type:
-- "-"
-- "--"
-- "-."
-- ":"
-- "-"
-- "--"
-- "-."
-- ":"
-- "-"
-- "--"
-- "-"
+  - "-."
+  - "-."
+  - "-."
+  - "-."
 
 line_width:
-- 1
-- 1
-- 1
-- 1
-- 1
-- 1
-- 1
-- 1
-- 1
-- 1
-- 1.2
+  - 1
+  - 1
+  - 1
+  - 1
 
-average: true
-
-output_filename: GSS_APCP_03.png
+output_filename: ens-sig_T2M.png
 
 # Line plot variables
 x_label: "Lead Time"
-y_label: "GSS"
-ylim: [0,0.6]
-xlim: 
+y_label: "RMSE"
+ylim: [-0.5,0.5]
+xlim: [0,36]        # Adjust as needed for your dataset
 grid: true
-yticks: [0.1,0.2,0.3,0.4,0.5,0.6]
-xticks: 
-
+yticks:  # Customize tick marks if needed
+xticks: [0,3,6,9,12,15,18,21,24,27,30,33,36]       # Customize tick marks if needed

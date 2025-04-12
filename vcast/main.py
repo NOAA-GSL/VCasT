@@ -6,7 +6,7 @@ from colorama import Fore, Style
 
 from vcast.stat import ReadStat
 from vcast.plot import LinePlot, Reliability, PerformanceDiagram
-from vcast.processing import process_in_parallel
+from vcast.processing import process_in_parallel, StatiscalSignificance
 from vcast.io import ConfigLoader, OutputFileHandler, FileChecker
 
 
@@ -39,6 +39,9 @@ def detect_yaml_config(file_path):
             
             if all(key in config for key in ["input_file", "group_by", "output_agg_file"]):
                 type = "agg"
+
+            if all(key in config for key in ["input_model_A", "input_model_B", "output_file"]):
+                type = "sig"
 
         return type
     except Exception as e:
@@ -139,6 +142,13 @@ def handle_aggregation(config):
 
     sys.exit(0)
 
+def handle_statistical_significance(config):
+
+    print(f"Running statistical significance...")
+
+    StatiscalSignificance(config)
+
+    sys.exit(0)
 
 def main():
     """Central command-line interface for VCasT."""
@@ -167,7 +177,7 @@ def main():
 
     # **Step 1: Try detecting YAML configuration**
     action = detect_yaml_config(args.file_path)
-    if action in ["convert", "plot", "stats", "agg"]:
+    if action in ["convert", "plot", "stats", "agg", "sig"]:
         config = ConfigLoader(args.file_path)
         if action == "convert":        
             handle_conversion(config)
@@ -177,6 +187,8 @@ def main():
             handle_statistical_analysis(config, args.test_mode)
         elif action == "agg":
             handle_aggregation(config)
+        elif action == "sig":
+            handle_statistical_significance(config)
 
     # **Step 2: If not YAML, try checking if it's NetCDF or GRIB2**
     print(f"Attempting to detect file format for: {args.file_path} ...")

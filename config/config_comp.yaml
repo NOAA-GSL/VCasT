@@ -1,0 +1,6 @@
+input_model_A: "../../../../Projects/WPO/rr/blend-T2M.data"
+input_model_A: "blend-ens_1.data"
+input_model_B: "../../../../Projects/WPO/rr/enkf-T2M.data"
+input_model_B: "enkf-ens_1.data"
+output_file: "T2M_sign-ens_1.data"
+metric: "rmse"

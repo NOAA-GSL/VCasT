@@ -119,15 +119,53 @@ class LinePlot(BasePlot):
             self.ax.set_xticks(custom_xticks)
         # Set x-axis limits if provided.
         if self.config.xlim:
-            self.ax.set_xlim(x_values[self.config.xlim[0]], x_values[self.config.xlim[1]])                
-        self.ax.plot(
-            x_values, y_values * self.config.scale,
-            color=self.config.line_color[i],
-            marker=self.config.line_marker[i],
-            linestyle=self.config.line_type[i],
-            linewidth=self.config.line_width[i],
-            label=self.config.labels[i]
-        )
+            self.ax.set_xlim(x_values[self.config.xlim[0]], x_values[self.config.xlim[1]])
+
+
+        if hasattr(self.config, "ci"):
+            if self.config.significance:
+
+                self.ax.fill_between(
+                    x_values,
+                    data["ci_lower"] * self.config.scale,
+                    data["ci_upper"] * self.config.scale,
+                    color=self.config.line_color[i],
+                    alpha=0.2,  # Transparency of the shaded region
+                    label=f"{self.config.labels[i]} CI"
+                )
+
+        if hasattr(self.config, "significance"):
+            if self.config.significance:
+                x_values = np.array(x_values)
+                y_values = np.array(y_values)
+       
+                significant_mask = data["significant"]
+                self.ax.scatter(
+                    x_values[significant_mask],
+                    y_values[significant_mask],
+                    color=self.config.line_color[i],
+                    marker=self.config.line_marker[i],
+                    label=f"{self.config.labels[i]} (significant)"
+                )
+
+                self.ax.plot(
+                    x_values,
+                    y_values,
+                    color=self.config.line_color[i],
+                    linestyle=self.config.line_type[i],
+                    linewidth=self.config.line_width[i],
+                    label=self.config.labels[i]
+                )
+        else:
+            self.ax.plot(
+                x_values, y_values * self.config.scale,
+                color=self.config.line_color[i],
+                linestyle=self.config.line_type[i],
+                marker=self.config.line_marker[i],
+                linewidth=self.config.line_width[i],
+                label=self.config.labels[i]
+            )
+
         # If self.config.average is True, calculate the overall average and add a horizontal line.
         if getattr(self.config, "average", False):
             # Compute the average, ignoring NaN values.

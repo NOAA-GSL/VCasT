@@ -1,68 +1,89 @@
-start_date: "2024-04-01_02:00:00"  # Start date of the data processing
-end_date: "2024-07-30_00:00:00"
-interval_hours: "1"                # Interval for processing (e.g., hourly, 6-hourly)
+# ====================================================
+# Plotting Configuration File
+# ====================================================
+# This YAML configuration is used to run the plotting mode.
+# It sets up parameters for plotting line charts from processed data files.
+# Customize the values to match your data paths, styling preferences,
+# time settings, and additional options for statistical significance.
 
-average: 
-scale: 1
+# ------------------------
+# Plot Settings
+# ------------------------
+plot_type: line                    # Type of plot (line chart)
 
-significance: True
-ci: True
+# ------------------------
+# Data Processing Timeframe
+# ------------------------
+start_date: "2024-04-01_02:00:00"   # Start date & time for data processing
+end_date: "2024-07-30_00:00:00"     # End date & time for data processing
+interval_hours: "1"                # Time interval (in hours) between data points
 
+# ------------------------
+# Data Options
+# ------------------------
+average: false                     # Flag to indicate if an average line should be plotted
+scale: 1                           # Scale factor for y-axis values (used to adjust the magnitude)
 
-plot_type: line
+unique:                           # Optional unique grouping settings (leave empty if not used)
+  
+fcst_var:                         # Optional forecast variable filter (process only matching rows if provided)
 
-unique:
+legend_style: true                # Boolean flag to enable custom legend styling
 
-fcst_var:
-
-legend_style: True
-
+# ------------------------
+# Variables to Plot
+# ------------------------
 vars:
+  - rmse: "/path/to/input_stats.data"   # First variable (e.g., RMSE) with its corresponding data file path
+  - mae: "/path/to/input_stats.data"    # Second variable (e.g., MAE) with its corresponding data file path
 
-  - observed_diff: "./T2M_sign-ens_0.data"
-  - observed_diff: "./T2M_sign-ens_1.data"
-  - observed_diff: "./T2M_sign-ens_2.data"
-  - observed_diff: "./T2M_sign-ens_3.data"
-# General plot parameters
-plot_title: "Temperature at 2m - (EnKF - blending)"
-legend_title: "Model"
+# ------------------------
+# General Plot Aesthetics
+# ------------------------
+plot_title: "Temperature at 2m"   # Title of the plot
+legend_title: "Model"             # Title to be displayed for the plot legend
+
 labels:
-  - "ens_0"
-  - "ens_1"
-  - "ens_2"
-  - "ens_3"
+  - "Model A"                    # Label for the first line/dataset
+  - "Model B"                    # Label for the second line/dataset
 
 line_color:
-  - "red"
-  - "green"
-  - "orange"
-  - "blue"
+  - "red"                        # Color for the first dataset's line
+  - "green"                      # Color for the second dataset's line
 
 line_marker:
-  - "x"
-  - "x"
-  - "x"
-  - "x"
+  - "o"                          # Marker style for the first dataset (circle)
+  - "x"                          # Marker style for the second dataset (cross)
 
 line_type:
-  - "-."
-  - "-."
-  - "-."
-  - "-."
+  - "-."                         # Line style for the first dataset (dash-dot)
+  - "-"                          # Line style for the second dataset (solid)
 
 line_width:
-  - 1
-  - 1
-  - 1
-  - 1
+  - 1                            # Line width for the first dataset
+  - 1                            # Line width for the second dataset
 
-output_filename: ens-sig_T2M.png
+output_filename: /path/to/output.png  # File path where the final plot will be saved
 
-# Line plot variables
-x_label: "Lead Time"
-y_label: "RMSE"
-ylim: [-0.5,0.5]
-xlim: [0,36]        # Adjust as needed for your dataset
-grid: true
-yticks:  # Customize tick marks if needed
-xticks: [0,3,6,9,12,15,18,21,24,27,30,33,36]       # Customize tick marks if needed
+# ------------------------
+# Axis Labels and Limits
+# ------------------------
+x_label: "Lead Time"             # Label for the x-axis
+y_label: "RMSE"                  # Label for the y-axis
+
+ylim: [-0.5, 0.5]                # Y-axis limits as a list [min, max]
+xlim: [0, 36]                    # X-axis limits (indices or positions), adjust depending on your dataset
+
+grid: true                       # Flag to enable grid lines on the plot
+
+# ------------------------
+# Custom Tick Marks
+# ------------------------
+yticks:                        # Optionally provide a list of custom y-axis tick marks (left empty if not needed)
+xticks: [0,3,6,9,12,15,18,21,24,27,30,33,36]  # Custom x-axis tick marks (for example, representing forecast lead times)
+
+# ------------------------
+# Statistical Significance Options
+# ------------------------
+significance: true              # Enable plotting of statistically significant markers/points
+ci: true                        # Enable plotting of confidence intervals (CI)

@@ -1,3 +1,23 @@
-input_file: "./T2M.data" 
-group_by: ["member","lead_time"]
-output_agg_file: "./T2M_agg.data"
+# ====================================================
+# Aggregation Configuration File
+# ====================================================
+# This YAML configuration is used to run the aggregation mode.
+# It specifies the input file containing all the processed statistics,
+# the columns by which the data should be grouped/aggregated, and
+# the output path for saving the aggregated results.
+
+# ------------------------
+# Input Data File
+# ------------------------
+input_file: "/path/to/inputfile.data"       # Path to the processed input data file containing all statistics
+
+# ------------------------
+# Grouping Settings
+# ------------------------
+group_by: ["model", "fcst_lead"]            # List of columns used for aggregation.
+                                            # The order determines how the data is grouped.
+
+# ------------------------
+# Output Data File
+# ------------------------
+output_agg_file: "/path/to/output_agg.data"   # Path and filename to save the aggregated data

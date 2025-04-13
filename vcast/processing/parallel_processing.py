@@ -61,7 +61,7 @@ def process_deterministic_multiprocessing(date, lead_time, member, test, config)
         fcst_file = Preprocessor.format_file_template(config.fcst_file_template, date, member, lead_time)
         ref_file = Preprocessor.format_file_template(config.ref_file_template, date, member, lead_time)
         
-        fcst_date = date + timedelta(hours=config.shift)
+        fcst_date = date
 
         logging.info(f"Processing {fcst_date} with lead time {lead_time} for member {member}")
 
@@ -167,7 +167,7 @@ def process_ensemble_multiprocessing(date,lead_time,config):
 
             for member in config.members:
 
-                fcst_date = date + timedelta(hours=config.shift)
+                fcst_date = date
                 
                 fcst_file = Preprocessor.format_file_template(config.fcst_file_template, date, member, lead_time)
 

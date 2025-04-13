@@ -70,7 +70,6 @@ class Preprocessor:
           - stat_name is a list whose (lowercase) values are in AVAILABLE_VARS.
           - processes is an integer > 0.
           - interval_hours is an integer.
-          - shift is an integer.
           - var_threshold is convertible to a float.
           - var_radius is an integer >= 0.
           
@@ -98,7 +97,7 @@ class Preprocessor:
         if config_type == "stat":
             required_attributes = [
                 "start_date", "end_date", "interval_hours",  # "time" is now optional
-                "fcst_file_template", "fcst_var", "fcst_level", "fcst_type_of_level", "shift",
+                "fcst_file_template", "fcst_var", "fcst_level", "fcst_type_of_level",
                 "ref_file_template", "ref_var", "ref_level", "ref_type_of_level",
                 "output_dir", "output_filename",
                 "stat_type", "stat_name",
@@ -171,10 +170,6 @@ class Preprocessor:
                     config.interval_hours = int(config.interval_hours)
                 except Exception:
                     raise ValueError(f"interval_hours must be an integer. Got: {config.interval_hours}")
-            
-            # Check shift: must be an integer
-            if not isinstance(config.shift, int):
-                raise ValueError(f"shift must be an integer. Got: {config.shift}")
             
             # Check var_threshold: must be convertible to a float
             try:
@@ -616,7 +611,7 @@ class Preprocessor:
         return dates  # Return the list of dates
 
     @staticmethod
-    def files_to_list(fcst_file_template, ref_file_template, dates, shift, lead_times, members = None):
+    def files_to_list(fcst_file_template, ref_file_template, dates, lead_times, members = None):
         """
         Generates forecast and reference file paths based on templates and datetime ranges.
 
@@ -624,25 +619,17 @@ class Preprocessor:
             fcst_file_template (str): Template for forecast file paths.
             ref_file_template (str): Template for reference file paths.
             dates (list): List of datetime objects to generate files for.
-            shift (int or str): Shift (in hours) to apply to forecast times.
 
         Returns:
             tuple: Two lists containing forecast and reference file paths.
         """
-        try:
-            # Convert shift to integer
-            shift = int(shift)
-        except ValueError:
-            raise ValueError(f"Invalid shift value: {shift}. Must be an integer or string representing an integer.")
-
         ffiles = []
         rfiles = []
         
         for current_datetime in np.unique(dates):
             for lead_time in lead_times:                       
                 for member in members:
-                    # Apply the shift for forecast datetime
-                    fcst_current_datetime = current_datetime + timedelta(hours=shift)
+                    fcst_current_datetime = current_datetime
         
                     # Calculate forecast and reference cycles
                     fcycle = fcst_current_datetime.hour - (fcst_current_datetime.hour % 6)

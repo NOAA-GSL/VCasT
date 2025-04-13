@@ -8,6 +8,7 @@ This module contains functionality for parallel computation and data interpolati
 Modules:
 - parallel_processing.py: Handles multiprocessing execution for data processing.
 - interpolation.py: Implements interpolation techniques for data transformation.
+- postprocessing.py: Implements the class StatisticalSignificance.
 """
 
 from .interpolation import interpolate_to_target_grid

@@ -1,57 +1,75 @@
-# ------------------------------
+# ====================================================
 # Date and Time Settings
-# ------------------------------
-start_date: "2024-04-01_02:00:00"  # Start date of the data processing
-end_date: "2024-04-07_17:00:00"    # End date of the data processing
-interval_hours: "1"                # Interval in hours for processing (e.g., 1, 6)
+# ====================================================
+# These settings define the time period and time intervals for data processing.
+start_date: "2024-04-01_02:00:00"        # Starting date and time for processing
+end_date: "2024-04-01_03:00:00"          # Ending date and time for processing
+interval_hours: "1"                    # Time interval (in hours) at which processing is performed
 
-# ------------------------------
+# Additional settings to define forecast lead times.
+start_lead_time: 0                     # Starting lead time (e.g., forecast offset in hours)
+end_lead_time: 5                       # Ending lead time
+interval_lead_time: 1                  # Lead time step (e.g., each 1 hour)
+
+members: ["ens_0", "ens_1"] # If set, it loops over all the ensemble members
+
+# ====================================================
 # Forecast Configuration
-# ------------------------------
-fcst_file_template: "/path/to/forecast/forecast_{year}-{month}-{day}T{hour}:00:00.nc"  # Forecast file template (NetCDF or GRIB2)
-fcst_var: "WIND"                    # Forecast variable name
-fcst_level: 1000                    # Level for forecast variable
-fcst_type_of_level: "level"         # Type of level for forecast variable
-shift: -1                           # Time shift for forecast files (if applicable)
+# ====================================================
+# The forecast configuration defines the file template and variable settings for forecast data.
+fcst_file_template: "/path/to/{year}{month}{day}/{members}/uppfiles/WRFPRS.GrbF{lead_time}.grib2"
+  # Template used to locate forecast files.
+fcst_var: "T2M"                         # Variable name in the forecast file (e.g., 2-meter temperature)
+fcst_level: 2                           # Level (e.g., vertical level) for the forecast variable
+fcst_type_of_level: "heightAboveGround" # Type of level for the forecast variable (used when processing grib2 files)
 
-# ------------------------------
+# ====================================================
 # Reference Configuration
-# ------------------------------
-ref_file_template: "/path/to/reference/obs_{year}{month}{day}/{cycle}/hrrr.t{hour}z.wrfprsf00.grib2"  # Reference file template (NetCDF or GRIB2)
-ref_var: "10si"                     # Reference variable name
-ref_level: 10                       # Level for reference variable
-ref_type_of_level: "heightAboveGround"  # Type of level for reference variable (e.g., heightAboveGround)
+# ====================================================
+# These settings define the file template and variable parameters for the reference (observational) data.
+ref_file_template: "/path/to/{valid_year}{valid_month}{valid_day}/hrrr.t{valid_hour}z.wrfprsf00.grib2"
+  # Template used to locate reference files.
+ref_var: "T2M"                         # Variable name in the reference file
+ref_level: 2                           # Level for the reference variable
+ref_type_of_level: "heightAboveGround" # Type of level for the reference variable (used when processing grib2 files)
 
-# ------------------------------
+# ====================================================
 # Output Configuration
-# ------------------------------
-output_dir: "/path/to/output_dir"   # Directory to save the output files
-output_filename: "output_file.txt"  # Name of the output file
+# ====================================================
+# Defines where the results will be saved.
+output_dir: "."                        # Directory for saving the output files (current directory in this case)
+output_filename: "output.data"         # File name for the output file
 
-# ------------------------------
+# ====================================================
 # Statistical Metrics
-# ------------------------------
-# Specify metrics to calculate (available options: rmse, bias, quantiles, mae, gss, fbias)
-stat_name:                                    
+# ====================================================
+# Specify the type of statistical analysis and the metrics to be computed.
+stat_type: "det"                      # Type of statistics to compute ("det" for deterministic,
+                                      # "ens" would be for ensemble if applicable)
+stat_name:                            # List of statistical metrics to calculate
   - "rmse"
   - "bias"
-  - "quantiles"
-  - "mae"
-  - "gss"
 
-# ------------------------------
+# 'threshold' is only used to filter variables for continuous fields/metrics (e.g. rmse, bias, fbias...).
+threshold:                             
+
+# ====================================================
 # Variable Threshold and Radius
-# ------------------------------
-var_threshold: 10                  # Threshold value for analysis (e.g., wind speed)
-var_radius: 10                     # Radius of influence for calculations (0 means no radius applied)
+# ====================================================
+# Sets thresholds for discret metrics/variables (e.g. fss, pod, far...).
+var_threshold: 20                      # Threshold value for the analysis (e.g., minimum wind speed)
+var_radius: 1                          # Radius of influence (in grid points) used in calculations
 
-# ------------------------------
+# ====================================================
 # Grid and Interpolation Settings
-# ------------------------------
-interpolation: false               # Whether to interpolate data
-target_grid: "fcst"                # Target grid for analysis ("fcst" or "ref")
+# ====================================================
+# These settings control whether interpolation is applied and the target grid used for analysis.
+interpolation: true                    # Boolean flag indicating whether interpolation should be performed
+target_grid: "/path/to/domain_grid.nc"
+  # The grid specification or file used as the target for interpolation
 
-# ------------------------------
+# ====================================================
 # Parallel Processing
-# ------------------------------
-processes: 200                     # Number of processes to run in parallel
+# ====================================================
+# Controls the number of processes used to run the analysis in parallel.
+processes: 1                           # The number of processes to run in parallel (set to 1 in this example)

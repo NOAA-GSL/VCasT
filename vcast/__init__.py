@@ -12,12 +12,11 @@ Modules:
 - `plot`: Implements plotting functions including performance and Taylor diagrams.
 - `processing`: Contains interpolation and parallel data processing.
 - `stat`: Provides statistical calculations and data aggregation.
-
 """
 
 # Importing core functionalities for external use
 from .io import ConfigLoader, OutputFileHandler, FileChecker, Preprocessor
-from .processing import process_in_parallel, interpolate_to_target_grid
+from .processing import process_in_parallel, interpolate_to_target_grid, StatiscalSignificance
 from .stat import ReadStat
 from .plot import BasePlot, LinePlot, Reliability, PerformanceDiagram
 
@@ -32,5 +31,6 @@ __all__ = [
     "BasePlot", 
     "LinePlot", 
     "Reliability", 
-    "PerformanceDiagram"
+    "PerformanceDiagram",
+    "StatiscalSignificance"
 ]

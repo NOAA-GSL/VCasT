@@ -14,9 +14,11 @@ jobs:
     steps:
       - name: Check out repository (including submodules)
         uses: actions/checkout@v3
-        with:
-          submodules: true
-          fetch-depth: 0  
+          with:
+            ref: ${{ github.ref }}
+            fetch-depth: 0         
+            submodules: recursive 
+            persist-credentials: true 
 
       - name: Update submodules to latest main branch
         run: |

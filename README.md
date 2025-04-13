@@ -1,6 +1,6 @@
 # VCasT: Verification and Forecast Evaluation Tool
 
-[![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+[![Apache License 2.0](https://img.shields.io/badge/license-Apache%202.0-blue.svg)](LICENSE)
 
 VCasT (Verification and Forecast Evaluation Tool) is a library designed for weather model verification.
 

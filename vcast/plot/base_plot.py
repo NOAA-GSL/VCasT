@@ -16,8 +16,10 @@ class BasePlot:
         Save the plot to a file.
         """
 
+        legend = False
         if hasattr(self.config, "legend_style"):
             if self.config.legend_style:
+                legend = True
                 self.ax.legend(
                     title=self.config.legend_title,
                     fontsize='medium',
@@ -25,7 +27,8 @@ class BasePlot:
                     loc='center left',
                     bbox_to_anchor=(1, 0.5)
                 )
-        else:
+        
+        if not legend:
             self.ax.legend(title=self.config.legend_title, fontsize='medium', shadow=True)
 
 

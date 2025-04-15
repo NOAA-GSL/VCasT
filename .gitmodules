@@ -1,4 +1,4 @@
 [submodule "tests"]
 	path = tests
-	url = git@github.com:NOAA-GSL/VCasT-tests.git
+	url = https://github.com/NOAA-GSL/VCasT-tests.git
 	branch = main

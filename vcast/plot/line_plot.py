@@ -123,6 +123,8 @@ class LinePlot(BasePlot):
         if self.config.xlim:
             self.ax.set_xlim(x_values[self.config.xlim[0]], x_values[self.config.xlim[1]])
 
+        ylabel = self.config.labels[i]
+
 
         if hasattr(self.config, "ci"):
             if self.config.significance:
@@ -133,11 +135,13 @@ class LinePlot(BasePlot):
                     data["ci_upper"] * self.config.scale,
                     color=self.config.line_color[i],
                     alpha=0.2,  # Transparency of the shaded region
-                    label=f"{self.config.labels[i]} CI"
+                    label=f"{ylabel} CI"
                 )
 
+        signif = False
         if hasattr(self.config, "significance"):
             if self.config.significance:
+                signif = True
                 x_values = np.array(x_values)
                 y_values = np.array(y_values)
        
@@ -147,7 +151,7 @@ class LinePlot(BasePlot):
                     y_values[significant_mask],
                     color=self.config.line_color[i],
                     marker=self.config.line_marker[i],
-                    label=f"{self.config.labels[i]} (significant)"
+                    label=f"{ylabel} (significant)"
                 )
 
                 self.ax.plot(
@@ -156,16 +160,17 @@ class LinePlot(BasePlot):
                     color=self.config.line_color[i],
                     linestyle=self.config.line_type[i],
                     linewidth=self.config.line_width[i],
-                    label=self.config.labels[i]
+                    label=ylabel
                 )
-        else:
+
+        if not signif:            
             self.ax.plot(
                 x_values, y_values * self.config.scale,
                 color=self.config.line_color[i],
                 linestyle=self.config.line_type[i],
                 marker=self.config.line_marker[i],
                 linewidth=self.config.line_width[i],
-                label=self.config.labels[i]
+                label=ylabel
             )
 
         # If self.config.average is True, calculate the overall average and add a horizontal line.
@@ -177,7 +182,7 @@ class LinePlot(BasePlot):
                 color=self.config.line_color[i],
                 linestyle=self.config.line_type[i],
                 linewidth=self.config.line_width[i],
-                label=f"{self.config.labels[i]} Average ({avg_value:.2f})"
+                label=f"{ylabel} Average ({avg_value:.2f})"
             )    
 
     def get_x_values(self, data):

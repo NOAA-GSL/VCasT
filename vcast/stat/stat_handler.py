@@ -303,24 +303,36 @@ class ReadStat:
             logging.exception("Error in filter_by_columns:")
             raise RuntimeError(f"Error in `filter_by_columns`: {str(e)}")
 
-    def aggregation(self, df, group_by_columns):
+    def aggregation(self, df: pd.DataFrame, group_by_columns: list[str]) -> pd.DataFrame:
         """
         Aggregates the given DataFrame by the specified group_by_columns while keeping 
-        the 'date' column if all values in the group are the same.
-        
+        the 'date' column if all values in the group are the same, and adds a 'total' 
+        column giving the number of rows in each group.
+    
         Parameters:
           - df (pd.DataFrame): Input DataFrame containing the data.
-          - group_by_columns (list): List of column names to group by.
-        
+          - group_by_columns (list[str]): List of column names to group by.
+    
         Returns:
-          - pd.DataFrame: Aggregated DataFrame.
+          - pd.DataFrame: Aggregated DataFrame, with one row per group, numeric columns
+                          averaged and a 'total' count.
         """
         logging.info("Aggregating DataFrame using group_by columns: %s", group_by_columns)
-        # Define aggregation functions for numeric columns
-        aggregation_functions = {col: 'mean' for col in df.select_dtypes(include=['number']).columns}
-        aggregated_df = df.groupby(group_by_columns, as_index=False).agg(aggregation_functions)
-        logging.info("Aggregation complete; resulting shape: %s", aggregated_df.shape)
-        return aggregated_df
+    
+        # 1) Mean‑aggregate all numeric columns
+        agg_funcs  = {col: "mean" for col in df.select_dtypes(include="number").columns}
+        grouped    = df.groupby(group_by_columns, as_index=False)
+        aggregated = grouped.agg(agg_funcs)
+    
+        # 2) Compute the group sizes via size().reset_index(), then rename the last column to 'total'
+        counts = df.groupby(group_by_columns).size().reset_index()
+        counts.columns = list(group_by_columns) + ["total"]
+    
+        # 3) Merge the counts back into the aggregated DataFrame
+        result = pd.merge(aggregated, counts, on=group_by_columns, how="left")
+    
+        logging.info("Aggregation complete; resulting shape: %s", result.shape)
+        return result
     
     def save_dataframe(self, df, output_file):
         """

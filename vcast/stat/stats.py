@@ -163,19 +163,25 @@ def compute_mae(forecast_values, reference_values):
     Compute Mean Absolute Error (MAE) between forecast and reference values.
 
     Parameters:
-    - forecast_values (numpy.ndarray): Array of forecasted values.
-    - reference_values (numpy.ndarray): Array of observed/reference values.
+    - forecast_values (np.ndarray): Forecasted values.
+    - reference_values (np.ndarray): Reference values.
 
     Returns:
-    - float: The Mean Absolute Error (MAE), which is the average of the absolute differences 
-             between forecasted and observed values.
-    """
+    - float: MAE value.
 
-    # Calculate the absolute differences and compute their mean
+    Raises:
+    - ValueError: If shapes do not match.
+    """
+    forecast_values = np.asarray(forecast_values)
+    reference_values = np.asarray(reference_values)
+
+    if forecast_values.shape != reference_values.shape:
+        raise ValueError("Forecast values and reference values must have the same shape.")
+
     return np.mean(np.abs(forecast_values - reference_values))
 
 
-def compute_scores(fcst_data, ref_data, var_threshold, radius=0):
+def compute_scores(fcst_data, ref_data, fcst_threshold, ref_threshold, radius = None):
     """
     Calculate hits, misses, false alarms, and correct rejections based on forecast and reference data.
     Handles both local grid point comparisons and grid radius of influence.
@@ -194,9 +200,12 @@ def compute_scores(fcst_data, ref_data, var_threshold, radius=0):
     if fcst_data.shape != ref_data.shape:
         raise ValueError("Forecast and reference grids must have the same shape.")
     
+    if radius is None:
+        radius = 0
+
     # Logical masks for significant events
-    fcst_mask = fcst_data >= var_threshold
-    ref_mask = ref_data >= var_threshold
+    fcst_mask = fcst_data >= fcst_threshold
+    ref_mask = ref_data >= ref_threshold
 
     if radius == 0:
         # Local grid point calculation
@@ -430,7 +439,7 @@ def compute_stdev(forecast_values, reference_values):
     # Compute and return the standard deviation of forecast values
     return np.std(forecast_values)
 
-def compute_fss(forecast_values, reference_values, threshold, window_size):
+def compute_fss(forecast_values, reference_values, fcst_threshold, ref_threshold, window_size):
     """
     Compute the Fractions Skill Score (FSS) for spatial forecasts.
 
@@ -452,8 +461,8 @@ def compute_fss(forecast_values, reference_values, threshold, window_size):
         raise ValueError("Window size must be greater than zero.")
 
     # Convert both forecast and reference fields to binary events (1 if >= threshold, else 0)
-    fcst_binary = (forecast_values >= threshold).astype(float)
-    ref_binary = (reference_values >= threshold).astype(float)
+    fcst_binary = (forecast_values >= fcst_threshold).astype(float)
+    ref_binary = (reference_values >= ref_threshold).astype(float)
 
     # If neither field contains events, FSS cannot be computed
     if not (np.any(fcst_binary) or np.any(ref_binary)):
@@ -551,88 +560,3 @@ def compute_brier_score(forecast_values, reference_values, threshold, window_siz
     brier_score = np.mean((forecast_probabilities - reference_outcomes) ** 2)
 
     return brier_score
-
-
-def fss_monte_carlo_significance(forecast_values, reference_values, threshold, window_size, n_iterations=1000):
-    """
-    Compute the Monte Carlo significance of the observed FSS.
-    
-    Parameters:
-        forecast_values (np.ndarray): Forecast reflectivity values.
-        reference_values (np.ndarray): Observed reflectivity values.
-        threshold (float): Threshold for event detection.
-        window_size (int): Window size for FSS computation.
-        n_iterations (int): Number of Monte Carlo iterations.
-        
-    Returns:
-        observed_fss (float): FSS computed from the original fields.
-        p_value (float): Fraction of Monte Carlo samples with FSS equal to or greater than the observed FSS.
-        null_distribution (np.ndarray): Array of FSS values from the Monte Carlo runs.
-    """
-    # Compute observed FSS
-    observed_fss = compute_fss(forecast_values, reference_values, threshold, window_size)
-    
-    null_distribution = []
-    # For each iteration, shuffle the forecast field to break spatial structure.
-    for i in range(n_iterations):
-        # Shuffle the forecast values; flatten then reshape to preserve original shape.
-        shuffled_fcst = np.random.permutation(forecast_values.flatten()).reshape(forecast_values.shape)
-        fss_value = compute_fss(shuffled_fcst, reference_values, threshold, window_size)
-        null_distribution.append(fss_value)
-    
-    null_distribution = np.array(null_distribution)
-    
-    # Compute p-value: fraction of shuffled FSS values equal to or exceeding the observed FSS.
-    p_value = np.mean(null_distribution >= observed_fss)
-    
-    return observed_fss, p_value, null_distribution
-
-def fss_bootstrap_significance(forecast_values, reference_values, threshold, window_size, n_bootstrap=1000):
-    """
-    Compute bootstrap-based significance (95% confidence interval) for the FSS.
-    
-    Note: This bootstrap procedure resamples grid cells with replacement,
-    assuming independence. In spatial contexts, a block bootstrap may be more appropriate.
-    
-    Parameters:
-        forecast_values (np.ndarray): Forecast reflectivity values.
-        reference_values (np.ndarray): Observed reflectivity values.
-        threshold (float): Threshold for event detection.
-        window_size (int): Window size for FSS computation.
-        n_bootstrap (int): Number of bootstrap samples.
-        
-    Returns:
-        observed_fss (float): FSS computed from the original fields.
-        ci_lower (float): Lower bound of the 95% confidence interval.
-        ci_upper (float): Upper bound of the 95% confidence interval.
-        bootstrap_distribution (np.ndarray): Array of FSS values from the bootstrap samples.
-    """
-    observed_fss = compute_fss(forecast_values, reference_values, threshold, window_size)
-    bootstrap_distribution = []
-    
-    shape = forecast_values.shape
-    # Flatten arrays for sampling.
-    fcst_flat = forecast_values.flatten()
-    ref_flat = reference_values.flatten()
-    n_points = fcst_flat.size
-    
-    for i in range(n_bootstrap):
-        # Sample indices with replacement.
-        indices = np.random.randint(0, n_points, size=n_points)
-        # Reshape the bootstrap sample back to the original shape.
-        fcst_sample = fcst_flat[indices].reshape(shape)
-        ref_sample = ref_flat[indices].reshape(shape)
-        try:
-            fss_value = compute_fss(fcst_sample, ref_sample, threshold, window_size)
-        except Exception:
-            fss_value = np.nan
-        bootstrap_distribution.append(fss_value)
-    
-    bootstrap_distribution = np.array(bootstrap_distribution)
-    
-    # Compute the 95% confidence interval from the bootstrap distribution.
-    ci_lower = np.nanpercentile(bootstrap_distribution, 2.5)
-    ci_upper = np.nanpercentile(bootstrap_distribution, 97.5)
-    
-    return observed_fss, ci_lower, ci_upper
-

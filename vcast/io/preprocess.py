@@ -10,7 +10,7 @@ class Preprocessor:
     """Handles input/output file preparation and date formatting."""
 
     @staticmethod
-    def read_input_data(input_file, var_name, type_of_level, level, date):
+    def read_input_data(input_file, var_name, type_of_level, level, date, lead_time):
         from vcast.io import FileChecker
         """
         Reads forecast or observation data from a given input file.
@@ -42,7 +42,7 @@ class Preprocessor:
             data, lats, lons = Preprocessor.read_grib2(input_file, var_name, type_of_level, level)
             stype = 'grib2'
         elif 'zarr' in file_type:
-            data, lats, lons = Preprocessor.read_zarr(input_file, var_name, type_of_level, level, stime)
+            data, lats, lons = Preprocessor.read_zarr(input_file, var_name, type_of_level, level, stime, lead_time)
             stype = 'zarr'            
         else:
             raise Exception("Error: File format unknown.")
@@ -70,9 +70,6 @@ class Preprocessor:
           - stat_name is a list whose (lowercase) values are in AVAILABLE_VARS.
           - processes is an integer > 0.
           - interval_hours is an integer.
-          - shift is an integer.
-          - var_threshold is convertible to a float.
-          - var_radius is an integer >= 0.
           
         Additionally, if any of the optional lead time attributes exist (start_lead_time, end_lead_time, interval_lead_time):
           - All must exist.
@@ -98,12 +95,10 @@ class Preprocessor:
         if config_type == "stat":
             required_attributes = [
                 "start_date", "end_date", "interval_hours",  # "time" is now optional
-                "fcst_file_template", "fcst_var", "fcst_level", "fcst_type_of_level", "shift",
+                "fcst_file_template", "fcst_var", "fcst_level", "fcst_type_of_level",
                 "ref_file_template", "ref_var", "ref_level", "ref_type_of_level",
                 "output_dir", "output_filename",
                 "stat_type", "stat_name",
-                "threshold",
-                "var_threshold", "var_radius",
                 "interpolation", "target_grid",
                 "processes"
             ]
@@ -157,6 +152,7 @@ class Preprocessor:
             if not isinstance(config.stat_name, list):
                 raise ValueError("stat_name must be a list.")
             for stat in config.stat_name:
+                stat, _, _, _ = Preprocessor.parse_metric_string(stat)
                 if stat.lower() not in AVAILABLE_VARS:
                     allowed = ", ".join(sorted(AVAILABLE_VARS))
                     raise ValueError(f"Invalid stat in stat_name: '{stat}'. Allowed values: {allowed}")
@@ -172,58 +168,49 @@ class Preprocessor:
                 except Exception:
                     raise ValueError(f"interval_hours must be an integer. Got: {config.interval_hours}")
             
-            # Check shift: must be an integer
-            if not isinstance(config.shift, int):
-                raise ValueError(f"shift must be an integer. Got: {config.shift}")
-            
-            # Check var_threshold: must be convertible to a float
-            try:
-                config.var_threshold = float(config.var_threshold)
-            except Exception:
-                raise ValueError(f"var_threshold must be a float. Got: {config.var_threshold}")
-            
-            # Check var_radius: must be an integer >= 0
-            if not isinstance(config.var_radius, int) or config.var_radius < 0:
-                raise ValueError(f"var_radius must be an integer greater than or equal to 0. Got: {config.var_radius}")
-            
             # Optional: Validate lead time attributes.
             # If any one exists, then all must exist.
-            config.lead_times = range(0,1)
-            if (hasattr(config, 'start_lead_time') or 
-                hasattr(config, 'end_lead_time') or 
-                hasattr(config, 'interval_lead_time')):
-                
-                missing_lead = [key for key in ['start_lead_time', 'end_lead_time', 'interval_lead_time']
-                                if not hasattr(config, key)]
-                if missing_lead:
-                    raise ValueError("Optional lead time attributes incomplete. Missing: " + ", ".join(missing_lead))
-                
-                # Convert start_lead_time and end_lead_time to integers
-                try:
-                    config.start_lead_time = int(config.start_lead_time)
-                except Exception:
-                    raise ValueError(f"start_lead_time must be an integer. Got: {config.start_lead_time}")
-                try:
-                    config.end_lead_time = int(config.end_lead_time)
-                except Exception:
-                    raise ValueError(f"end_lead_time must be an integer. Got: {config.end_lead_time}")
-                
-                # Ensure that end_lead_time is equal or greater than start_lead_time
-                if config.end_lead_time < config.start_lead_time:
-                    raise ValueError("end_lead_time must be equal or greater than start_lead_time.")
-                
-                # Check interval_lead_time: must be an integer
-                if not isinstance(config.interval_lead_time, int):
+            if not hasattr(config, 'lead_times'):
+                config.lead_times = range(0,1)
+                if (hasattr(config, 'start_lead_time') or 
+                    hasattr(config, 'end_lead_time') or 
+                    hasattr(config, 'interval_lead_time')):
+                    
+                    missing_lead = [key for key in ['start_lead_time', 'end_lead_time', 'interval_lead_time']
+                                    if not hasattr(config, key)]
+                    if missing_lead:
+                        raise ValueError("Optional lead time attributes incomplete. Missing: " + ", ".join(missing_lead))
+                    
+                    # Convert start_lead_time and end_lead_time to integers
                     try:
-                        config.interval_lead_time = int(config.interval_lead_time)
+                        config.start_lead_time = int(config.start_lead_time)
                     except Exception:
-                        raise ValueError(f"interval_lead_time must be an integer. Got: {config.interval_lead_time}")
+                        raise ValueError(f"start_lead_time must be an integer. Got: {config.start_lead_time}")
+                    try:
+                        config.end_lead_time = int(config.end_lead_time)
+                    except Exception:
+                        raise ValueError(f"end_lead_time must be an integer. Got: {config.end_lead_time}")
+                    
+                    # Ensure that end_lead_time is equal or greater than start_lead_time
+                    if config.end_lead_time < config.start_lead_time:
+                        raise ValueError("end_lead_time must be equal or greater than start_lead_time.")
+                    
+                    # Check interval_lead_time: must be an integer
+                    if not isinstance(config.interval_lead_time, int):
+                        try:
+                            config.interval_lead_time = int(config.interval_lead_time)
+                        except Exception:
+                            raise ValueError(f"interval_lead_time must be an integer. Got: {config.interval_lead_time}")
+                    
+                    # Compute the lead_times list using the Preprocessor
+                    config.lead_times = Preprocessor.lead_times_to_list(
+                        config.start_lead_time, config.end_lead_time, config.interval_lead_time
+                    )
+            else:
+                if not isinstance(config.lead_times, list):
+                    raise ValueError(f"lead_times must be a list. Got: {config.lead_times} (type: {type(config.lead_times)})")
                 
-                # Compute the lead_times list using the Preprocessor
-                config.lead_times = Preprocessor.lead_times_to_list(
-                    config.start_lead_time, config.end_lead_time, config.interval_lead_time
-                )
-            
+
             # Optional: Validate members attribute if it exists
             if hasattr(config, 'members'):
                 if not isinstance(config.members, list):
@@ -246,6 +233,36 @@ class Preprocessor:
         else:
             # For other config_types, add alternative validation logic as needed.
             return config
+
+    @staticmethod
+    def parse_metric_string(var_string):
+        """
+        Parse a metric specifier of the form:
+            "metric"             → returns (metric, None, None)
+            "metric:thresh"      → returns (metric, float(thresh), None)
+            "metric:thresh:rad"  → returns (metric, float(thresh), int(rad))
+    
+        Raises ValueError if the format isn't recognized.
+        """
+        parts = var_string.split(":")
+        metric = parts[0]
+    
+        # no extra args
+        if len(parts) == 1:
+            return metric, None, None, None
+    
+        # one extra arg  → threshold
+        if len(parts) == 2:
+            return metric, float(parts[1]), None, None
+    
+        # two extra args → threshold and radius
+        if len(parts) == 3:
+            return metric, float(parts[1]), float(parts[2]), None
+        
+        if len(parts) == 4:
+            return metric, float(parts[1]), float(parts[2]), float(parts[3])
+    
+        raise ValueError(f"Invalid metric specifier: '{var_string}'")
 
     @staticmethod
     def read_grib2(grib2_file, var_name, type_of_level, level):
@@ -322,7 +339,7 @@ class Preprocessor:
             for label, opener in open_attempts:
                 try:
                     ds = opener(path)
-                    print(f"✅ Successfully opened with {label}")
+                    print(f"Successfully opened with {label}")
                     return ds
                 except Exception as e:
                     errors[label] = str(e)
@@ -386,7 +403,7 @@ class Preprocessor:
             raise RuntimeError(f"Error reading Zarr dataset at '{zarr_folder}': {e}") from e
 
     @staticmethod
-    def read_zarr(zarr_folder, var_name, type_of_level=None, level=None, time=None):
+    def read_zarr(zarr_folder, var_name, type_of_level=None, level=None, time=None, lead_time=None):
         """
         Reads a Zarr dataset using xarray and extracts the specified variable data 
         along with latitude and longitude arrays. Handles cases where the type_of_level 
@@ -421,6 +438,12 @@ class Preprocessor:
                 else:
                     raise ValueError("Time coordinate not found in Zarr dataset.")
     
+            if lead_time is not None:
+                if "lead_time" in ds:
+                    ds = ds.sel(lead_time=f"{lead_time:02d}:00:00")
+                else:
+                    raise ValueError("Lead time coordinate not found in Zarr dataset.") 
+                
             # Ensure the variable exists
             if var_name not in ds:
                 raise ValueError(f"Variable '{var_name}' not found in Zarr dataset. Available variables: {list(ds.data_vars.keys())}")
@@ -616,7 +639,7 @@ class Preprocessor:
         return dates  # Return the list of dates
 
     @staticmethod
-    def files_to_list(fcst_file_template, ref_file_template, dates, shift, lead_times, members = None):
+    def files_to_list(fcst_file_template, ref_file_template, dates, lead_times, members = None):
         """
         Generates forecast and reference file paths based on templates and datetime ranges.
 
@@ -624,25 +647,17 @@ class Preprocessor:
             fcst_file_template (str): Template for forecast file paths.
             ref_file_template (str): Template for reference file paths.
             dates (list): List of datetime objects to generate files for.
-            shift (int or str): Shift (in hours) to apply to forecast times.
 
         Returns:
             tuple: Two lists containing forecast and reference file paths.
         """
-        try:
-            # Convert shift to integer
-            shift = int(shift)
-        except ValueError:
-            raise ValueError(f"Invalid shift value: {shift}. Must be an integer or string representing an integer.")
-
         ffiles = []
         rfiles = []
         
         for current_datetime in np.unique(dates):
             for lead_time in lead_times:                       
                 for member in members:
-                    # Apply the shift for forecast datetime
-                    fcst_current_datetime = current_datetime + timedelta(hours=shift)
+                    fcst_current_datetime = current_datetime
         
                     # Calculate forecast and reference cycles
                     fcycle = fcst_current_datetime.hour - (fcst_current_datetime.hour % 6)
@@ -657,39 +672,4 @@ class Preprocessor:
                     rfiles.append(ref_file)
 
         return ffiles, rfiles
-
-    @staticmethod
-    def extract_members(path, template):
-        """
-        Extracts members from a file path based on a given template.
-    
-        Args:
-            path (str): The actual path to be matched.
-            template (str): The template string containing placeholders.
-    
-        Returns:
-            str: Extracted member name.
-        
-        Raises:
-            ValueError: If the path doesn't match the template.
-        """
-        # Convert template placeholders to regex capture groups
-        pattern = template
-        pattern = pattern.replace("{year}", r"(?P<year>\d{4})")
-        pattern = pattern.replace("{month}", r"(?P<month>\d{2})")
-        pattern = pattern.replace("{day}", r"(?P<day>\d{2})")
-        pattern = pattern.replace("{lead_time}", r"(?P<lead_time>\d+)")
-        pattern = pattern.replace("{members}", r"(?P<members>[^/]+)")  # Capture any member name
-        
-        # Compile the pattern to regex
-        regex_pattern = re.compile(pattern)
-        
-        # Search for a match
-        match = regex_pattern.match(path)
-        
-        if match:
-            # Extract 'members' from the match
-            return match.group("members")
-        else:
-            raise ValueError(f"Path '{path}' does not match the template '{template}'.")
 

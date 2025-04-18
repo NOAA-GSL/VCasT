@@ -1,44 +1,53 @@
-input_stat_folder: /scratch2/BMC/fv3lam/Vanderlei.Vargas/verification_AIML/hands-on/agg/stats
-line_type: cts # fho, ctc, cts, cnt, mctc, mpr, sl1l2, sal1l2, vl1l2, vcnt, mcts, 
-               # pct, pstd, pjc, prc, eclv, val1l2, seeps_mpr, seeps
+# ====================================================
+# MET Stat Configuration File
+# ====================================================
+# This YAML configuration file is used to run the MET stat mode.
+# It defines the paths, filtering criteria, and output options for processing
+# .stat files with meteorological statistical data.
 
-date_column: fcst_valid_beg   # fcst_valid_beg, fcst_valid_end, obs_valid_beg, obs_valid_end
-start_date: "2022-05-01_00:00:00"  # Start date of the data processing
-end_date: "2022-05-08_00:00:00"    # End date of the data processing
+# ------------------------
+# Input and Line Type Settings
+# ------------------------
+input_stat_folder: /path/to/MET/stats     # Folder containing the input .stat files
+line_type: cts                            # Line type to filter records (e.g., cnt, cts, ecnt...)
 
-# Threshold filtering (min-max for multiple numerical columns)
-thresholds:
-  #rmse: [1, 2]  # Min, Max
+# ------------------------
+# Date Settings
+# ------------------------
+date_column: fcst_valid_beg               # The column name to use for date filtering (e.g., fcst_valid_beg)
+start_date: "2022-05-01_00:00:00"           # Start date/time for data processing
+end_date: "2022-05-08_00:00:00"             # End date/time for data processing
 
-# String filtering (list of allowed values for each column)
-string_filters:
-  model: ["RRFS_GDAS_GF.SPP.SPPT_mem01","RRFS_GDAS_GF.SPP.SPPT_mem02","RRFS_GDAS_GF.SPP.SPPT_mem03",
-          "RRFS_GDAS_GF.SPP.SPPT_mem04","RRFS_GDAS_GF.SPP.SPPT_mem05","RRFS_GDAS_GF.SPP.SPPT_mem06",
-          "RRFS_GDAS_GF.SPP.SPPT_mem07","RRFS_GDAS_GF.SPP.SPPT_mem08","RRFS_GDAS_GF.SPP.SPPT_mem09",
-          "RRFS_GDAS_GF.SPP.SPPT_mem10"]  # Only include these models
-  fcst_var: ["APCP_03"]  # Only include these models
-  fcst_thresh: [">0.0"]
-  fcst_lead: ['030000', '060000', '090000', '120000', '150000', '180000', '210000', '240000',
-              '270000', '300000', '330000', '360000', '390000', '420000', '450000', '480000']
+# ------------------------
+# Filtering Options
+# ------------------------
+# Threshold filtering: Define minimum and maximum values for specific columns.
+thresholds:  
+  rmse: [1, 2]                          # Filter rows with rmse value between 1 and 2
 
+# String filtering: Allow only specified string values for given columns.
+string_filters:  
+  model: ["RRFS_GDAS_GF.SPP.SPPT_mem01","RRFS_GDAS_GF.SPP.SPPT_mem02"]  # Only include these models
+  fcst_var: ["APCP_03"]                  # Only include this forecast variable
+  fcst_thresh: [">0.0"]                  # Include only thresholds greater than 0.0
+  fcst_lead: ['030000', '060000', '090000']  # Only include these forecast lead times
 
- #,"060000","090000","120000"]
-  # fcst_thresh: [">0.0"] #,"060000","090000","120000"]
+# Column filtering: Keep only the specified columns (leave empty to retain all columns)
+columns_to_keep: ["fcst_valid_beg", "model", "fcst_thresh", "obs_thresh", "line_type"]
 
-  #fcst_lev: ["0,*,*"]
+# ------------------------
+# Output Options
+# ------------------------
+# Save the reformatted DataFrame to a file
+reformat_file: true                      
+output_reformat_file: "/path/to/filtered_output.data"  # File path for the full filtered data
 
-# Column filtering (Keep only these columns; leave empty to keep all)
-columns_to_keep: #["fcst_valid_beg", "model", "fcst_thresh", "obs_thresh", "line_type"]
+# Extract specific metrics (statistical variables) to save
+output_file: true                        
+stat_vars: ["fbias", "gss"]              # List of selected metric names to output
+output_plot_file: "/path/to/output.data" # File path for saving the output metrics data
 
-# Whether to save the reformatted DataFrame to a file
-reformat_file: true  # Set to false to disable writing the file
-output_reformat_file: "../filtered_output.data"  # Path to save output
-
-# Extract variables for plotting
-stat_vars: ["fbias","gss"]
-output_file: true  # Set to false to disable writing the file
-output_plot_file: "../agg.data"  # Path to save output
-
-aggregate: true
-group_by: ["fcst_lead"]
-output_agg_file: "../test_agg_all.data"  # Path to save output
+# Aggregation Options
+aggregate: true                          # Whether to perform data aggregation
+group_by: ["fcst_lead"]                  # Columns to group by for aggregation (order matters)
+output_agg_file: "/path/to/output_agg.data"  # File path for saving aggregated data

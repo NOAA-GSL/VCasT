@@ -1,0 +1,22 @@
+# ====================================================
+# Statistical Significance Configuration File
+# ====================================================
+# This YAML configuration is used to run the statistical significance mode.
+# It specifies input data files for two models, output file paths, and the metric
+# (e.g., rmse, bias, fss) to use during the significance evaluation.
+
+# ------------------------
+# Input Data Files
+# ------------------------
+input_model_A: "/path/to/modela.data"   # File path for processed data from Model A
+input_model_B: "/path/to/modelb.data"   # File path for processed data from Model B
+
+# ------------------------
+# Output Settings
+# ------------------------
+output_file: "output.data"              # File path to save the resulting significance data
+
+# ------------------------
+# Analysis Metric
+# ------------------------
+metric: "rmse"                         # Statistical metric to be used for comparison (e.g., rmse)

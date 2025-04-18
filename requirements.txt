@@ -6,3 +6,4 @@ scipy
 argparse
 pandas
 matplotlib
+pytest

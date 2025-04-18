@@ -6,7 +6,7 @@ from colorama import Fore, Style
 
 from vcast.stat import ReadStat
 from vcast.plot import LinePlot, Reliability, PerformanceDiagram
-from vcast.processing import process_in_parallel
+from vcast.processing import process_in_parallel, StatiscalSignificance
 from vcast.io import ConfigLoader, OutputFileHandler, FileChecker
 
 
@@ -21,20 +21,29 @@ def detect_yaml_config(file_path):
         str: 'convert' for statistical extraction, 'plot' for plotting, 'stats' for statistical analysis, 
              or None if the YAML format is unrecognized.
     """
+    type = None
+
     try:
         with open(file_path, "r") as file:
             config = yaml.safe_load(file)
 
         if isinstance(config, dict):
             if all(key in config for key in ["input_stat_folder", "line_type", "date_column", "output_file"]):
-                return "convert"
+                type = "convert"
             
             if all(key in config for key in ["plot_type", "vars", "output_filename"]):
-                return "plot"
+                type = "plot"
             
             if all(key in config for key in ["stat_name", "fcst_file_template", "ref_file_template"]):
-                return "stats"
+                type = "stats"
+            
+            if all(key in config for key in ["input_file", "group_by", "output_agg_file"]):
+                type = "agg"
 
+            if all(key in config for key in ["input_model_A", "input_model_B", "output_file"]):
+                type = "sig"
+
+        return type
     except Exception as e:
         print(Fore.RED + f"Error reading YAML file: {file_path} - {e}" + Style.RESET_ALL)
 
@@ -79,7 +88,9 @@ def handle_conversion(config):
 
     print(f"Processing METplus statistics...")
     
-    ReadStat(config)
+    rs = ReadStat(config)
+
+    rs.run_all()
     
     sys.exit(0)
 
@@ -121,6 +132,24 @@ def handle_statistical_analysis(config, test):
 
     sys.exit(0)
 
+def handle_aggregation(config):
+
+    print(f"Running aggregation...")
+
+    rs = ReadStat(config)
+
+    rs.run_aggregation(config.input_file)
+
+    sys.exit(0)
+
+def handle_statistical_significance(config):
+
+    print(f"Running statistical significance...")
+
+    StatiscalSignificance(config)
+
+    sys.exit(0)
+
 def main():
     """Central command-line interface for VCasT."""
     parser = argparse.ArgumentParser(
@@ -148,7 +177,7 @@ def main():
 
     # **Step 1: Try detecting YAML configuration**
     action = detect_yaml_config(args.file_path)
-    if action in ["convert", "plot","stats"]:
+    if action in ["convert", "plot", "stats", "agg", "sig"]:
         config = ConfigLoader(args.file_path)
         if action == "convert":        
             handle_conversion(config)
@@ -156,6 +185,10 @@ def main():
             handle_plotting(config)
         elif action == "stats":
             handle_statistical_analysis(config, args.test_mode)
+        elif action == "agg":
+            handle_aggregation(config)
+        elif action == "sig":
+            handle_statistical_significance(config)
 
     # **Step 2: If not YAML, try checking if it's NetCDF or GRIB2**
     print(f"Attempting to detect file format for: {args.file_path} ...")

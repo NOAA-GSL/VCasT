@@ -4,7 +4,7 @@ AVAILABLE_VARS = ["rmse", "bias", "quantiles", "mae", "gss", "fbias", "pod", "fa
 AVAILABLE_LINE_TYPES = [
             "fho", "ctc", "cts", "cnt", "mctc", "mpr", "sl1l2", "sal1l2", 
             "vl1l2", "vcnt", "pct", "pstd", "pjc", "prc", "eclv", "sl1l2", 
-            "sal1l2", "vl1l2", "val1l2", "vcnt", "mpr", "seeps_mpr", "seeps", "ecnt"
+            "sal1l2", "vl1l2", "val1l2", "vcnt", "mpr", "seeps_mpr", "seeps", "ecnt", "nbrcnt"
         ]
 
 FULL_HEADER = [ 
@@ -189,12 +189,16 @@ LINE_TYPE_COLUMNS = {
               "pv1", "pv2", "pv3",
               "seeps"],
     "ecnt":  [
-    "total", "n_ens", "crps", "crpss", 
-    "ign", "me", "rmse", "spread", "me_oerr", 
-    "rmse_oerr", "spread_oerr", "spread_plus_oerr", "crpscl", "crps_emp", 
-    "crpscl_emp", "crpss_emp", "crps_emp_fair", "spread_md", "mae", 
-    "mae_oerr", "bias_ratio", "n_ge_obs", "me_ge_obs", 
-    "n_lt_obs", "me_lt_obs", "ign_conv_oerr", "ign_corr_oerr"]
+              "total", "n_ens", "crps", "crpss", 
+              "ign", "me", "rmse", "spread", "me_oerr", 
+              "rmse_oerr", "spread_oerr", "spread_plus_oerr", "crpscl", "crps_emp", 
+              "crpscl_emp", "crpss_emp", "crps_emp_fair", "spread_md", "mae", 
+              "mae_oerr", "bias_ratio", "n_ge_obs", "me_ge_obs", 
+              "n_lt_obs", "me_lt_obs", "ign_conv_oerr", "ign_corr_oerr"],
+    "nbrcnt": ["total", "fbs", "fbs_bcl", "fbs_bcu", "fss", "fss_bcl", "fss_bcu",
+               "afss", "afss_bcl", "afss_bcu", "ufss", "ufss_bcl", "ufss_bcu", "f_rate", "f_rate_bcl", "f_rate_bcu",
+               "o_rate", "o_rate_bcl", "o_rate_bcu" ]
+
 
 }
 

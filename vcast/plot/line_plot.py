@@ -88,6 +88,8 @@ class LinePlot(BasePlot):
         if var not in data.columns:
             raise ValueError(f"Variable '{var}' not found in the file {file}.")
                 
+        y_values = data[var]
+
         # Build x-values: Always use date
         if "date" in data.columns:
             # Convert the date column using the expected format (adjust format if needed)
@@ -110,8 +112,8 @@ class LinePlot(BasePlot):
         else:
             raise ValueError(f"'date' column not found in the file {file}.")
 
-        # Extract y-values from the merged DataFrame.
-        y_values = data[var]
+        if len(y_values) != len(x_values):
+            raise Exception("ERROR: x and y dimensions are different, likely due to date settings.")
 
         # Optionally set custom x-ticks if provided.
         if self.config.xticks:
@@ -119,15 +121,58 @@ class LinePlot(BasePlot):
             self.ax.set_xticks(custom_xticks)
         # Set x-axis limits if provided.
         if self.config.xlim:
-            self.ax.set_xlim(x_values[self.config.xlim[0]], x_values[self.config.xlim[1]])                
-        self.ax.plot(
-            x_values, y_values * self.config.scale,
-            color=self.config.line_color[i],
-            marker=self.config.line_marker[i],
-            linestyle=self.config.line_type[i],
-            linewidth=self.config.line_width[i],
-            label=self.config.labels[i]
-        )
+            self.ax.set_xlim(x_values[self.config.xlim[0]], x_values[self.config.xlim[1]])
+
+        ylabel = self.config.labels[i]
+
+
+        if hasattr(self.config, "ci"):
+            if self.config.significance:
+
+                self.ax.fill_between(
+                    x_values,
+                    data["ci_lower"] * self.config.scale,
+                    data["ci_upper"] * self.config.scale,
+                    color=self.config.line_color[i],
+                    alpha=0.2,  # Transparency of the shaded region
+                    label=f"{ylabel} CI"
+                )
+
+        signif = False
+        if hasattr(self.config, "significance"):
+            if self.config.significance:
+                signif = True
+                x_values = np.array(x_values)
+                y_values = np.array(y_values)
+       
+                significant_mask = data["significant"]
+                self.ax.scatter(
+                    x_values[significant_mask],
+                    y_values[significant_mask],
+                    color=self.config.line_color[i],
+                    marker=self.config.line_marker[i],
+                    label=f"{ylabel} (significant)"
+                )
+
+                self.ax.plot(
+                    x_values,
+                    y_values,
+                    color=self.config.line_color[i],
+                    linestyle=self.config.line_type[i],
+                    linewidth=self.config.line_width[i],
+                    label=ylabel
+                )
+
+        if not signif:            
+            self.ax.plot(
+                x_values, y_values * self.config.scale,
+                color=self.config.line_color[i],
+                linestyle=self.config.line_type[i],
+                marker=self.config.line_marker[i],
+                linewidth=self.config.line_width[i],
+                label=ylabel
+            )
+
         # If self.config.average is True, calculate the overall average and add a horizontal line.
         if getattr(self.config, "average", False):
             # Compute the average, ignoring NaN values.
@@ -137,7 +182,7 @@ class LinePlot(BasePlot):
                 color=self.config.line_color[i],
                 linestyle=self.config.line_type[i],
                 linewidth=self.config.line_width[i],
-                label=f"{self.config.labels[i]} Average ({avg_value:.2f})"
+                label=f"{ylabel} Average ({avg_value:.2f})"
             )    
 
     def get_x_values(self, data):

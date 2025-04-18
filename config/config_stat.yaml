@@ -49,16 +49,7 @@ stat_type: "det"                      # Type of statistics to compute ("det" for
 stat_name:                            # List of statistical metrics to calculate
   - "rmse"
   - "bias"
-
-# 'threshold' is only used to filter variables for continuous fields/metrics (e.g. rmse, bias, fbias...).
-threshold:                             
-
-# ====================================================
-# Variable Threshold and Radius
-# ====================================================
-# Sets thresholds for discret metrics/variables (e.g. fss, pod, far...).
-var_threshold: 20                      # Threshold value for the analysis (e.g., minimum wind speed)
-var_radius: 1                          # Radius of influence (in grid points) used in calculations
+  - "fss:20:1"
 
 # ====================================================
 # Grid and Interpolation Settings

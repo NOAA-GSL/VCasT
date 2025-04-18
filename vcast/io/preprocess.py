@@ -70,8 +70,6 @@ class Preprocessor:
           - stat_name is a list whose (lowercase) values are in AVAILABLE_VARS.
           - processes is an integer > 0.
           - interval_hours is an integer.
-          - var_threshold is convertible to a float.
-          - var_radius is an integer >= 0.
           
         Additionally, if any of the optional lead time attributes exist (start_lead_time, end_lead_time, interval_lead_time):
           - All must exist.
@@ -101,8 +99,6 @@ class Preprocessor:
                 "ref_file_template", "ref_var", "ref_level", "ref_type_of_level",
                 "output_dir", "output_filename",
                 "stat_type", "stat_name",
-                "threshold",
-                "var_threshold", "var_radius",
                 "interpolation", "target_grid",
                 "processes"
             ]
@@ -156,6 +152,7 @@ class Preprocessor:
             if not isinstance(config.stat_name, list):
                 raise ValueError("stat_name must be a list.")
             for stat in config.stat_name:
+                stat, _, _, _ = Preprocessor.parse_metric_string(stat)
                 if stat.lower() not in AVAILABLE_VARS:
                     allowed = ", ".join(sorted(AVAILABLE_VARS))
                     raise ValueError(f"Invalid stat in stat_name: '{stat}'. Allowed values: {allowed}")
@@ -170,16 +167,6 @@ class Preprocessor:
                     config.interval_hours = int(config.interval_hours)
                 except Exception:
                     raise ValueError(f"interval_hours must be an integer. Got: {config.interval_hours}")
-            
-            # Check var_threshold: must be convertible to a float
-            try:
-                config.var_threshold = float(config.var_threshold)
-            except Exception:
-                raise ValueError(f"var_threshold must be a float. Got: {config.var_threshold}")
-            
-            # Check var_radius: must be an integer >= 0
-            if not isinstance(config.var_radius, int) or config.var_radius < 0:
-                raise ValueError(f"var_radius must be an integer greater than or equal to 0. Got: {config.var_radius}")
             
             # Optional: Validate lead time attributes.
             # If any one exists, then all must exist.
@@ -241,6 +228,36 @@ class Preprocessor:
         else:
             # For other config_types, add alternative validation logic as needed.
             return config
+
+    @staticmethod
+    def parse_metric_string(var_string):
+        """
+        Parse a metric specifier of the form:
+            "metric"             → returns (metric, None, None)
+            "metric:thresh"      → returns (metric, float(thresh), None)
+            "metric:thresh:rad"  → returns (metric, float(thresh), int(rad))
+    
+        Raises ValueError if the format isn't recognized.
+        """
+        parts = var_string.split(":")
+        metric = parts[0]
+    
+        # no extra args
+        if len(parts) == 1:
+            return metric, None, None, None
+    
+        # one extra arg  → threshold
+        if len(parts) == 2:
+            return metric, float(parts[1]), None, None
+    
+        # two extra args → threshold and radius
+        if len(parts) == 3:
+            return metric, float(parts[1]), float(parts[2]), None
+        
+        if len(parts) == 4:
+            return metric, float(parts[1]), float(parts[2]), float(parts[3])
+    
+        raise ValueError(f"Invalid metric specifier: '{var_string}'")
 
     @staticmethod
     def read_grib2(grib2_file, var_name, type_of_level, level):
@@ -317,7 +334,7 @@ class Preprocessor:
             for label, opener in open_attempts:
                 try:
                     ds = opener(path)
-                    print(f"✅ Successfully opened with {label}")
+                    print(f"Successfully opened with {label}")
                     return ds
                 except Exception as e:
                     errors[label] = str(e)

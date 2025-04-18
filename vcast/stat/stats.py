@@ -181,7 +181,7 @@ def compute_mae(forecast_values, reference_values):
     return np.mean(np.abs(forecast_values - reference_values))
 
 
-def compute_scores(fcst_data, ref_data, var_threshold, radius=0):
+def compute_scores(fcst_data, ref_data, fcst_threshold, ref_threshold, radius = None):
     """
     Calculate hits, misses, false alarms, and correct rejections based on forecast and reference data.
     Handles both local grid point comparisons and grid radius of influence.
@@ -200,9 +200,12 @@ def compute_scores(fcst_data, ref_data, var_threshold, radius=0):
     if fcst_data.shape != ref_data.shape:
         raise ValueError("Forecast and reference grids must have the same shape.")
     
+    if radius is None:
+        radius = 0
+
     # Logical masks for significant events
-    fcst_mask = fcst_data >= var_threshold
-    ref_mask = ref_data >= var_threshold
+    fcst_mask = fcst_data >= fcst_threshold
+    ref_mask = ref_data >= ref_threshold
 
     if radius == 0:
         # Local grid point calculation
@@ -436,7 +439,7 @@ def compute_stdev(forecast_values, reference_values):
     # Compute and return the standard deviation of forecast values
     return np.std(forecast_values)
 
-def compute_fss(forecast_values, reference_values, threshold, window_size):
+def compute_fss(forecast_values, reference_values, fcst_threshold, ref_threshold, window_size):
     """
     Compute the Fractions Skill Score (FSS) for spatial forecasts.
 
@@ -458,8 +461,8 @@ def compute_fss(forecast_values, reference_values, threshold, window_size):
         raise ValueError("Window size must be greater than zero.")
 
     # Convert both forecast and reference fields to binary events (1 if >= threshold, else 0)
-    fcst_binary = (forecast_values >= threshold).astype(float)
-    ref_binary = (reference_values >= threshold).astype(float)
+    fcst_binary = (forecast_values >= fcst_threshold).astype(float)
+    ref_binary = (reference_values >= ref_threshold).astype(float)
 
     # If neither field contains events, FSS cannot be computed
     if not (np.any(fcst_binary) or np.any(ref_binary)):

@@ -6,10 +6,11 @@ from vcast.stat import compute_bias, compute_correlation, compute_csi, compute_f
                        compute_scores,compute_stdev,compute_success_ratio, compute_fbias
 from vcast.stat import compute_fss_ensemble, compute_reliability
 from vcast.io import Preprocessor
-from datetime import timedelta
 import numpy as np
 import logging
 import math
+
+logging.basicConfig(level=logging.INFO, format='%(asctime)s [%(levelname)s] %(message)s')
 
 def truncate_to_10_decimals(value):
     """
@@ -38,10 +39,6 @@ def truncate_to_10_decimals(value):
         return _truncate(value)
     else:
         raise TypeError("Input must be a number or a list of numbers.")
-
-
-logging.basicConfig(level=logging.INFO, format='%(asctime)s [%(levelname)s] %(message)s')
-
 
 def process_deterministic_multiprocessing(date, lead_time, member, test, config):
     """
@@ -75,8 +72,10 @@ def process_deterministic_multiprocessing(date, lead_time, member, test, config)
 
         if fcst_data.ndim == 3:
             fcst_data = fcst_data[lead_time]
+        
+        if ref_data.ndim == 3:
             ref_data = ref_data[lead_time]
-
+        
         # Apply interpolation if enabled
         if config.interpolation:
             fcst_interpolated_data = interpolate_to_target_grid(fcst_data, flats, flons, config.target_grid) 
@@ -88,26 +87,35 @@ def process_deterministic_multiprocessing(date, lead_time, member, test, config)
         # Compute statistics
         stats = [date, lead_time]
         if config.cmem:
-            stats += [Preprocessor.extract_members(fcst_file, config.fcst_file_template)]
+            stats += [member]
         
-        ustat_name = [s.lower() for s in config.stat_name]
-
-        if any(stat in ustat_name for stat in ["gss", "fbias", "pod", "far", "csi", "sr"]):
-            hits, misses, false_alarms, correct_rejections, total_events = compute_scores(
-                fcst_interpolated_data, ref_interpolated_data, config.var_threshold, config.var_radius
-            )
-
-        if config.threshold == "" or config.threshold is None:
-            threshold = None
-        else:
-            threshold = config.threshold
+        stat_names = []
+        parm1 = []
+        parm2 = []
+        parm3 = []
+        for stat in config.stat_name:
+            s, p1, p2, p3 = Preprocessor.parse_metric_string(stat)
+            stat_names.append(s)
+            parm1.append(p1)
+            parm2.append(p2)
+            parm3.append(p3)
 
         # Add computed statistics
-        for var in config.stat_name:
+        for i, var in enumerate(stat_names):
+            p1 = parm1[i]
+            p2 = parm2[i]
+            p3 = parm3[i]
+
+            if var in ["gss", "fbias", "pod", "far", "csi", "sr"]:
+                if p1 is None or p2 is None:
+                    raise Exception(f"Parameters for {var} are not properly specified.")
+                hits, misses, false_alarms, _, total_events = compute_scores(
+                fcst_interpolated_data, ref_interpolated_data, p1, p2, int(p3))
+
             if var == 'rmse':
-                tstat = compute_rmse(fcst_interpolated_data, ref_interpolated_data, threshold)
+                tstat = compute_rmse(fcst_interpolated_data, ref_interpolated_data)
             elif var == 'bias':
-                tstat = compute_bias(fcst_interpolated_data, ref_interpolated_data, threshold)
+                tstat = compute_bias(fcst_interpolated_data, ref_interpolated_data)
             elif var == 'quantiles':
                 tstat = compute_quantiles(fcst_interpolated_data, ref_interpolated_data)
             elif var == 'mae':
@@ -129,7 +137,9 @@ def process_deterministic_multiprocessing(date, lead_time, member, test, config)
             elif var == 'sr':
                 tstat = compute_success_ratio(hits, false_alarms)
             elif var == 'fss':
-                tstat = compute_fss(fcst_interpolated_data, ref_interpolated_data, config.var_threshold, config.var_radius)
+                if p1 is None or p2 is None or p3 is None:
+                    raise Exception(f"Parameters for {var} are not properly specified.")
+                tstat = compute_fss(fcst_interpolated_data, ref_interpolated_data, p1, p2, int(p3))
 
             if test:
                 tstat = truncate_to_10_decimals(tstat)

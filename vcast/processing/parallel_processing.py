@@ -58,23 +58,15 @@ def process_deterministic_multiprocessing(date, lead_time, member, test, config)
         fcst_file = Preprocessor.format_file_template(config.fcst_file_template, date, member, lead_time)
         ref_file = Preprocessor.format_file_template(config.ref_file_template, date, member, lead_time)
         
-        fcst_date = date
-
-        logging.info(f"Processing {fcst_date} with lead time {lead_time} for member {member}")
+        logging.info(f"Processing {date} with lead time {lead_time} for member {member}")
 
         # Read forecast and reference data
-        fcst_data, flats, flons, ftype = Preprocessor.read_input_data(
-            fcst_file, config.fcst_var, config.fcst_type_of_level, config.fcst_level, fcst_date
+        fcst_data, flats, flons, _ = Preprocessor.read_input_data(
+            fcst_file, config.fcst_var, config.fcst_type_of_level, config.fcst_level, date, lead_time
         )
-        ref_data, rlats, rlons, rtype = Preprocessor.read_input_data(
-            ref_file, config.ref_var, config.ref_type_of_level, config.ref_level, date
+        ref_data, rlats, rlons, _ = Preprocessor.read_input_data(
+            ref_file, config.ref_var, config.ref_type_of_level, config.ref_level, date, lead_time
         )
-
-        if fcst_data.ndim == 3:
-            fcst_data = fcst_data[lead_time]
-        
-        if ref_data.ndim == 3:
-            ref_data = ref_data[lead_time]
         
         # Apply interpolation if enabled
         if config.interpolation:
@@ -149,7 +141,7 @@ def process_deterministic_multiprocessing(date, lead_time, member, test, config)
             else:
                 stats.append(tstat)
             
-        logging.info(f"Completed processing for {fcst_date} with lead time {lead_time} for member {member}")
+        logging.info(f"Completed processing for {date} with lead time {lead_time} for member {member}")
 
         return stats
 

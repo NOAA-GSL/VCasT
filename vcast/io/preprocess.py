@@ -10,7 +10,7 @@ class Preprocessor:
     """Handles input/output file preparation and date formatting."""
 
     @staticmethod
-    def read_input_data(input_file, var_name, type_of_level, level, date):
+    def read_input_data(input_file, var_name, type_of_level, level, date, lead_time):
         from vcast.io import FileChecker
         """
         Reads forecast or observation data from a given input file.
@@ -42,7 +42,7 @@ class Preprocessor:
             data, lats, lons = Preprocessor.read_grib2(input_file, var_name, type_of_level, level)
             stype = 'grib2'
         elif 'zarr' in file_type:
-            data, lats, lons = Preprocessor.read_zarr(input_file, var_name, type_of_level, level, stime)
+            data, lats, lons = Preprocessor.read_zarr(input_file, var_name, type_of_level, level, stime, lead_time)
             stype = 'zarr'            
         else:
             raise Exception("Error: File format unknown.")
@@ -170,42 +170,47 @@ class Preprocessor:
             
             # Optional: Validate lead time attributes.
             # If any one exists, then all must exist.
-            config.lead_times = range(0,1)
-            if (hasattr(config, 'start_lead_time') or 
-                hasattr(config, 'end_lead_time') or 
-                hasattr(config, 'interval_lead_time')):
-                
-                missing_lead = [key for key in ['start_lead_time', 'end_lead_time', 'interval_lead_time']
-                                if not hasattr(config, key)]
-                if missing_lead:
-                    raise ValueError("Optional lead time attributes incomplete. Missing: " + ", ".join(missing_lead))
-                
-                # Convert start_lead_time and end_lead_time to integers
-                try:
-                    config.start_lead_time = int(config.start_lead_time)
-                except Exception:
-                    raise ValueError(f"start_lead_time must be an integer. Got: {config.start_lead_time}")
-                try:
-                    config.end_lead_time = int(config.end_lead_time)
-                except Exception:
-                    raise ValueError(f"end_lead_time must be an integer. Got: {config.end_lead_time}")
-                
-                # Ensure that end_lead_time is equal or greater than start_lead_time
-                if config.end_lead_time < config.start_lead_time:
-                    raise ValueError("end_lead_time must be equal or greater than start_lead_time.")
-                
-                # Check interval_lead_time: must be an integer
-                if not isinstance(config.interval_lead_time, int):
+            if not hasattr(config, 'lead_times'):
+                config.lead_times = range(0,1)
+                if (hasattr(config, 'start_lead_time') or 
+                    hasattr(config, 'end_lead_time') or 
+                    hasattr(config, 'interval_lead_time')):
+                    
+                    missing_lead = [key for key in ['start_lead_time', 'end_lead_time', 'interval_lead_time']
+                                    if not hasattr(config, key)]
+                    if missing_lead:
+                        raise ValueError("Optional lead time attributes incomplete. Missing: " + ", ".join(missing_lead))
+                    
+                    # Convert start_lead_time and end_lead_time to integers
                     try:
-                        config.interval_lead_time = int(config.interval_lead_time)
+                        config.start_lead_time = int(config.start_lead_time)
                     except Exception:
-                        raise ValueError(f"interval_lead_time must be an integer. Got: {config.interval_lead_time}")
+                        raise ValueError(f"start_lead_time must be an integer. Got: {config.start_lead_time}")
+                    try:
+                        config.end_lead_time = int(config.end_lead_time)
+                    except Exception:
+                        raise ValueError(f"end_lead_time must be an integer. Got: {config.end_lead_time}")
+                    
+                    # Ensure that end_lead_time is equal or greater than start_lead_time
+                    if config.end_lead_time < config.start_lead_time:
+                        raise ValueError("end_lead_time must be equal or greater than start_lead_time.")
+                    
+                    # Check interval_lead_time: must be an integer
+                    if not isinstance(config.interval_lead_time, int):
+                        try:
+                            config.interval_lead_time = int(config.interval_lead_time)
+                        except Exception:
+                            raise ValueError(f"interval_lead_time must be an integer. Got: {config.interval_lead_time}")
+                    
+                    # Compute the lead_times list using the Preprocessor
+                    config.lead_times = Preprocessor.lead_times_to_list(
+                        config.start_lead_time, config.end_lead_time, config.interval_lead_time
+                    )
+            else:
+                if not isinstance(config.lead_times, list):
+                    raise ValueError(f"lead_times must be a list. Got: {config.lead_times} (type: {type(config.lead_times)})")
                 
-                # Compute the lead_times list using the Preprocessor
-                config.lead_times = Preprocessor.lead_times_to_list(
-                    config.start_lead_time, config.end_lead_time, config.interval_lead_time
-                )
-            
+
             # Optional: Validate members attribute if it exists
             if hasattr(config, 'members'):
                 if not isinstance(config.members, list):
@@ -398,7 +403,7 @@ class Preprocessor:
             raise RuntimeError(f"Error reading Zarr dataset at '{zarr_folder}': {e}") from e
 
     @staticmethod
-    def read_zarr(zarr_folder, var_name, type_of_level=None, level=None, time=None):
+    def read_zarr(zarr_folder, var_name, type_of_level=None, level=None, time=None, lead_time=None):
         """
         Reads a Zarr dataset using xarray and extracts the specified variable data 
         along with latitude and longitude arrays. Handles cases where the type_of_level 
@@ -433,6 +438,12 @@ class Preprocessor:
                 else:
                     raise ValueError("Time coordinate not found in Zarr dataset.")
     
+            if lead_time is not None:
+                if "lead_time" in ds:
+                    ds = ds.sel(lead_time=f"{lead_time:02d}:00:00")
+                else:
+                    raise ValueError("Lead time coordinate not found in Zarr dataset.") 
+                
             # Ensure the variable exists
             if var_name not in ds:
                 raise ValueError(f"Variable '{var_name}' not found in Zarr dataset. Available variables: {list(ds.data_vars.keys())}")
@@ -661,39 +672,4 @@ class Preprocessor:
                     rfiles.append(ref_file)
 
         return ffiles, rfiles
-
-    @staticmethod
-    def extract_members(path, template):
-        """
-        Extracts members from a file path based on a given template.
-    
-        Args:
-            path (str): The actual path to be matched.
-            template (str): The template string containing placeholders.
-    
-        Returns:
-            str: Extracted member name.
-        
-        Raises:
-            ValueError: If the path doesn't match the template.
-        """
-        # Convert template placeholders to regex capture groups
-        pattern = template
-        pattern = pattern.replace("{year}", r"(?P<year>\d{4})")
-        pattern = pattern.replace("{month}", r"(?P<month>\d{2})")
-        pattern = pattern.replace("{day}", r"(?P<day>\d{2})")
-        pattern = pattern.replace("{lead_time}", r"(?P<lead_time>\d+)")
-        pattern = pattern.replace("{members}", r"(?P<members>[^/]+)")  # Capture any member name
-        
-        # Compile the pattern to regex
-        regex_pattern = re.compile(pattern)
-        
-        # Search for a match
-        match = regex_pattern.match(path)
-        
-        if match:
-            # Extract 'members' from the match
-            return match.group("members")
-        else:
-            raise ValueError(f"Path '{path}' does not match the template '{template}'.")
 

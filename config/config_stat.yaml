@@ -11,6 +11,9 @@ start_lead_time: 0                     # Starting lead time (e.g., forecast offs
 end_lead_time: 5                       # Ending lead time
 interval_lead_time: 1                  # Lead time step (e.g., each 1 hour)
 
+# Or
+lead_times: [0,1,2]
+
 members: ["ens_0", "ens_1"] # If set, it loops over all the ensemble members
 
 # ====================================================
@@ -49,7 +52,7 @@ stat_type: "det"                      # Type of statistics to compute ("det" for
 stat_name:                            # List of statistical metrics to calculate
   - "rmse"
   - "bias"
-  - "fss:20:1"
+  - "fss:20:20:1"
 
 # ====================================================
 # Grid and Interpolation Settings

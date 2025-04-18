@@ -23,6 +23,7 @@ class OutputFileHandler:
         self.open_output_file()
 
     def open_output_file(self):
+        from vcast.io import Preprocessor
         """
         Opens the output file for writing.
 
@@ -52,12 +53,28 @@ class OutputFileHandler:
             header += ["model"]
 
         for stat in stat_name:
-            stat_lower = stat.lower()
+            stat_lower, p1, p2, p3 = Preprocessor.parse_metric_string(stat.lower())
             if stat_lower in AVAILABLE_VARS:
                 if stat_lower == "quantiles":
                     header += ["25p", "50p", "75p", "IQR", "LW", "UW"]
                 else:
-                    header.append(stat_lower)
+                    ss = ""
+                    if p1 is not None:
+                        ss += f":{p1}"
+                    else:
+                        ss += ":_"
+
+                    if p2 is not None:
+                        ss += f":{p2}"
+                    else:
+                        ss += ":_"
+                    
+                    if p3 is not None:
+                        ss += f":{p3}"
+                    else:
+                        ss += ":_"
+
+                    header.append(stat_lower + ss)
 
         self.write_to_output_file(header)  # Write header row
 

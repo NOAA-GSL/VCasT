@@ -13,5 +13,6 @@ from .constants import *
 from .stat_handler import ReadStat
 from .stats import *
 from .ensemble_stats import *
+from .agg import Aggregation
 
-__all__ = ["ReadStat"]
+__all__ = ["ReadStat","Aggregation"]

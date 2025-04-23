@@ -61,20 +61,15 @@ class OutputFileHandler:
                     ss = ""
                     if p1 is not None:
                         ss += f":{p1}"
-                    else:
-                        ss += ":_"
 
                     if p2 is not None:
                         ss += f":{p2}"
-                    else:
-                        ss += ":_"
                     
                     if p3 is not None:
                         ss += f":{p3}"
-                    else:
-                        ss += ":_"
 
-                    header.append(stat_lower + ss)
+                    fstat = f"{stat_lower}{ss}"
+                    header.append(fstat)
 
         self.write_to_output_file(header)  # Write header row
 

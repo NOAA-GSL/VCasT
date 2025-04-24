@@ -4,10 +4,14 @@ import pygrib
 import xarray as xr
 import re
 import os
+from pathlib import Path
+import pandas as pd
 from vcast.stat import AVAILABLE_VARS 
 
 class Preprocessor:
     """Handles input/output file preparation and date formatting."""
+
+    _TABLE_PATH = Path(__file__).resolve().parents[2] / 'util' / 'lookup_table.txt'
 
     @staticmethod
     def read_input_data(input_file, var_name, type_of_level, level, date, lead_time):
@@ -54,7 +58,106 @@ class Preprocessor:
         
         data = np.squeeze(data)
         return data, lat_grid, lon_grid, stype
-    
+
+    @classmethod
+    def get_lookup_table_path(cls, check: bool = True) -> Path:
+        """
+        Return the path to the lookup table file, optionally verifying its existence.
+
+        Args:
+            check: If True, ensure the file exists and is a regular file.
+
+        Raises:
+            LookupTableNotFound: if file is missing when check is True.
+        """
+        path = cls._TABLE_PATH
+        if check and not path.is_file():
+            raise Exception(f"Lookup table not found at {path}")
+        return path
+
+    @staticmethod
+    def get_meta_data(
+        df: pd.DataFrame,
+        variable: str,        
+        model: str,
+        level: str = None
+    ) -> tuple[str, str, str]:
+        """
+        Extract `model_variable`, `level`, and `level_name` for a given forecast or reference.
+
+        Args:
+            df: DataFrame loaded from the lookup table.
+            variable: the `variable` column value.
+            model: the `model` column value.
+            level: the level to match.
+
+
+        Returns:
+            Tuple of (model_variable, level, level_name).
+
+        Raises:
+            LookupTableDataError: if no match or ambiguous matches remain.
+        """
+        subset = df.loc[
+            (df['variable'] == variable) &
+            (df['model'] == model)
+        ]
+
+        if subset.empty:
+            raise Exception(
+                f"No metadata for variable={variable}, model={model}!"
+            )
+        
+        if len(subset) > 1:
+            raise Exception(
+                f"Ambiguous metadata for variable={variable}, model={model}, level={level}!"
+            )
+
+        row = subset.iloc[0]
+
+        if str(row['multi_level']).lower() == 't':
+            if level is None:
+                raise Exception(
+                    f"Level specification required for variable={variable}, model={model}"
+                )
+
+        return subset['model_variable'].iat[0], subset['level'].iat[0], subset['level_name'].iat[0], subset['units'].iat[0]
+
+    @classmethod
+    def process_variables(
+        cls,
+        config
+    ) -> dict[str, tuple[str, int, str]]:
+        """
+        For both forecast (`fcst`) and reference (`ref`), lookup metadata.
+
+        Expects `config` to provide attributes:
+          - `fcst_var`, `fcst_level`, `fcst_model`
+          - `ref_var`,  `ref_level`,  `ref_model`
+
+        Returns:
+            A dict with keys 'fcst' and 'ref', each mapping to the
+            (model_variable, level, level_name) tuple.
+        """
+        path = cls.get_lookup_table_path()
+        df = pd.read_csv(path, sep='\t', index_col=False)
+
+        result = {}
+        for tag in ('fcst', 'ref'):
+            mdl = getattr(config,f"{tag}_model")
+            if hasattr(config,"level"):
+                result[tag] = cls.get_meta_data(df, config.var, mdl, config.level)
+            else:
+                result[tag] = cls.get_meta_data(df, config.var, mdl)
+   
+        fcst_units = result['fcst'][3]
+        ref_units = result['ref'][3]
+   
+        if fcst_units != ref_units:
+            raise Exception(f"Unit conversion not implemented: fcst units '{fcst_units}' vs ref units '{ref_units}'")
+
+        return result
+
     @staticmethod
     def validate_config(config, config_type):
         """
@@ -95,19 +198,29 @@ class Preprocessor:
         if config_type == "stat":
             required_attributes = [
                 "start_date", "end_date", "interval_hours",  # "time" is now optional
-                "fcst_file_template", "fcst_var", "fcst_level", "fcst_type_of_level",
-                "ref_file_template", "ref_var", "ref_level", "ref_type_of_level",
+                "fcst_file_template", "var","fcst_model",
+                "ref_file_template", "ref_model",
                 "output_dir", "output_filename",
                 "stat_type", "stat_name",
                 "interpolation", "target_grid",
                 "processes"
             ]
-            
+           
             # Check that all required attributes exist
             missing = [attr for attr in required_attributes if not hasattr(config, attr)]
             if missing:
                 raise ValueError("Missing required configuration attributes: " + ", ".join(missing))
-            
+
+            res = Preprocessor.process_variables(config)
+
+            config.fcst_var = res['fcst'][0]
+            config.fcst_level = res['fcst'][1]
+            config.fcst_type_of_level = res['fcst'][2]
+
+            config.ref_var = res['ref'][0]
+            config.ref_level = res['ref'][1]
+            config.ref_type_of_level = res['ref'][2]
+
             # Define the expected date format for main dates
             date_format = "%Y-%m-%d_%H:%M:%S"
             
@@ -287,9 +400,7 @@ class Preprocessor:
         try:
             # Open the GRIB2 file
             grbs = pygrib.open(grib2_file)
-    
-            # Filter the GRIB message based on var_name, type_of_level, and level
-            grb = grbs.select(shortName=var_name, typeOfLevel=type_of_level, level=level)[0]
+            grb = grbs.select(shortName=var_name, typeOfLevel=type_of_level, level=int(level))[0]
     
             # Extract the data, latitude, and longitude
             data = grb.values

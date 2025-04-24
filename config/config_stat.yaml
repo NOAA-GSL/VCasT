@@ -16,22 +16,20 @@ members: ["ens_0", "ens_1"] # If set, it loops over all the ensemble members
 # ====================================================
 # Forecast Configuration
 # ====================================================
+var: "T2M"                         # Variable name (e.g., 2-meter temperature)
+
 # The forecast configuration defines the file template and variable settings for forecast data.
+fcst_model: "HRRR"  # forecast model
 fcst_file_template: "/path/to/{year}{month}{day}/{members}/uppfiles/WRFPRS.GrbF{lead_time}.grib2"
   # Template used to locate forecast files.
-fcst_var: "T2M"                         # Variable name in the forecast file (e.g., 2-meter temperature)
-fcst_level: 2                           # Level (e.g., vertical level) for the forecast variable
-fcst_type_of_level: "heightAboveGround" # Type of level for the forecast variable (used when processing grib2 files)
 
 # ====================================================
 # Reference Configuration
 # ====================================================
 # These settings define the file template and variable parameters for the reference (observational) data.
+ref_model: "HRRR"  # reference model
 ref_file_template: "/path/to/{valid_year}{valid_month}{valid_day}/hrrr.t{valid_hour}z.wrfprsf00.grib2"
   # Template used to locate reference files.
-ref_var: "T2M"                         # Variable name in the reference file
-ref_level: 2                           # Level for the reference variable
-ref_type_of_level: "heightAboveGround" # Type of level for the reference variable (used when processing grib2 files)
 
 # ====================================================
 # Output Configuration

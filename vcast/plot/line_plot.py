@@ -3,6 +3,25 @@ import matplotlib.pyplot as plt
 import matplotlib.dates as mdates
 from .base_plot import BasePlot
 import numpy as np
+from matplotlib.colors import to_rgb
+
+def parse_rgb_string(color_str):
+    try:
+        # Try using matplotlib for named colors or hex codes
+        return True, to_rgb(color_str)
+    except ValueError:
+        pass
+    
+    try:
+        # Try parsing a string tuple like "(0,1,0)" or "[0.5, 0.5, 0.5]"
+        color_str = color_str.strip("()[]")  # Remove parentheses or brackets
+        parts = [float(x.strip()) for x in color_str.split(",")]
+        if len(parts) == 3 and all(0 <= x <= 1 for x in parts):
+            return True, tuple(parts)
+    except Exception:
+        pass
+
+    return False, None
 
 class LinePlot(BasePlot):
     def __init__(self, config):
@@ -68,10 +87,13 @@ class LinePlot(BasePlot):
                             raise Exception(f"No data found for fcst_var = {self.config.fcst_var}")
         
                 # Handle unique grouping if applicable
-
-                if self.config.unique is None:
-                    self.__exceute_line(var, data, file, start_dt, end_dt, i)
-
+                unique = False
+                if hasattr(self.config, "unique"):
+                    if self.config.unique:
+                        unique = True 
+                
+                if not unique:
+                        self.__exceute_line(var, data, file, start_dt, end_dt, i)
                 else:
                     for j, column_obj in enumerate(self.config.unique):
                         column_dict = vars(column_obj)
@@ -124,16 +146,39 @@ class LinePlot(BasePlot):
             self.ax.set_xlim(x_values[self.config.xlim[0]], x_values[self.config.xlim[1]])
 
         ylabel = self.config.labels[i]
+        is_valid, color = parse_rgb_string(self.config.line_color[i])
 
+        if not is_valid:
+            raise Exception(f"{self.config.line_color[i]} is not a valid color.")
+
+        scale = 1
+        if hasattr(self.config, "scale"):
+            if self.config.scale:
+                scale = self.config.scale
+
+        if hasattr(self.config, "hlines"):
+            if self.config.hlines:
+                           
+                for i in self.config.hlines:
+
+                    hline = [i] * len(x_values)
+
+                    self.ax.plot(
+                        x_values,
+                        hline,
+                        color="black",
+                        linestyle="-",
+                        linewidth=0.5
+                    )                    
 
         if hasattr(self.config, "ci"):
-            if self.config.significance:
+            if self.config.ci:
 
                 self.ax.fill_between(
                     x_values,
-                    data["ci_lower"] * self.config.scale,
-                    data["ci_upper"] * self.config.scale,
-                    color=self.config.line_color[i],
+                    data["ci_lower"] * scale,
+                    data["ci_upper"] * scale,
+                    color=color,
                     alpha=0.2,  # Transparency of the shaded region
                     label=f"{ylabel} CI"
                 )
@@ -149,7 +194,7 @@ class LinePlot(BasePlot):
                 self.ax.scatter(
                     x_values[significant_mask],
                     y_values[significant_mask],
-                    color=self.config.line_color[i],
+                    color=color,
                     marker=self.config.line_marker[i],
                     label=f"{ylabel} (significant)"
                 )
@@ -157,7 +202,7 @@ class LinePlot(BasePlot):
                 self.ax.plot(
                     x_values,
                     y_values,
-                    color=self.config.line_color[i],
+                    color=color,
                     linestyle=self.config.line_type[i],
                     linewidth=self.config.line_width[i],
                     label=ylabel
@@ -165,25 +210,25 @@ class LinePlot(BasePlot):
 
         if not signif:            
             self.ax.plot(
-                x_values, y_values * self.config.scale,
-                color=self.config.line_color[i],
+                x_values, y_values * scale,
+                color=color,
                 linestyle=self.config.line_type[i],
                 marker=self.config.line_marker[i],
                 linewidth=self.config.line_width[i],
                 label=ylabel
             )
 
-        # If self.config.average is True, calculate the overall average and add a horizontal line.
-        if getattr(self.config, "average", False):
-            # Compute the average, ignoring NaN values.
-            avg_value = np.nanmean(y_values * self.config.scale)
-            self.ax.axhline(
-                y=avg_value ,
-                color=self.config.line_color[i],
-                linestyle=self.config.line_type[i],
-                linewidth=self.config.line_width[i],
-                label=f"{ylabel} Average ({avg_value:.2f})"
-            )    
+        if hasattr(self.config, "average"):
+            if self.config.average:
+                # Compute the average, ignoring NaN values.
+                avg_value = np.nanmean(y_values * scale)
+                self.ax.axhline(
+                    y=avg_value ,
+                    color=color,
+                    linestyle=self.config.line_type[i],
+                    linewidth=self.config.line_width[i],
+                    label=f"{ylabel} Average ({avg_value:.2f})"
+                )    
 
     def get_x_values(self, data):
         """

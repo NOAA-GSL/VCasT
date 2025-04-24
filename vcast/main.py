@@ -4,7 +4,7 @@ import os
 import yaml
 from colorama import Fore, Style  
 
-from vcast.stat import ReadStat
+from vcast.stat import ReadStat, Aggregation
 from vcast.plot import LinePlot, Reliability, PerformanceDiagram
 from vcast.processing import process_in_parallel, StatiscalSignificance
 from vcast.io import ConfigLoader, OutputFileHandler, FileChecker
@@ -136,9 +136,11 @@ def handle_aggregation(config):
 
     print(f"Running aggregation...")
 
-    rs = ReadStat(config)
+    agg = Aggregation(config)
 
-    rs.run_aggregation(config.input_file)
+    agg.run()
+
+    agg.save_output()    
 
     sys.exit(0)
 

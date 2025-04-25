@@ -83,8 +83,8 @@ class StatiscalSignificance:
                 "fcst_lead": lead,
                 "observed_diff": obs_diff,
                 "p_value": p_val,
-                "ci_lower": ci_low,
-                "ci_upper": ci_high,
+                "ci_bcl": ci_low,
+                "ci_bcu": ci_high,
                 "better_model": better_model,
                 "significant": significant
             })

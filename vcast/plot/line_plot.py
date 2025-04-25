@@ -159,9 +159,9 @@ class LinePlot(BasePlot):
         if hasattr(self.config, "hlines"):
             if self.config.hlines:
                            
-                for i in self.config.hlines:
+                for j in self.config.hlines:
 
-                    hline = [i] * len(x_values)
+                    hline = [j] * len(x_values)
 
                     self.ax.plot(
                         x_values,
@@ -172,16 +172,17 @@ class LinePlot(BasePlot):
                     )                    
 
         if hasattr(self.config, "ci"):
-            if self.config.ci:
+            
+            prefix = self.config.ci[i]
 
-                self.ax.fill_between(
-                    x_values,
-                    data["ci_lower"] * scale,
-                    data["ci_upper"] * scale,
-                    color=color,
-                    alpha=0.2,  # Transparency of the shaded region
-                    label=f"{ylabel} CI"
-                )
+            self.ax.fill_between(
+                x_values,
+                data[f"{prefix}_bcl"] * scale,
+                data[f"{prefix}_bcu"] * scale,
+                color=color,
+                alpha=0.2,  # Transparency of the shaded region
+                label=f"{ylabel} CI"
+            )
 
         signif = False
         if hasattr(self.config, "significance"):

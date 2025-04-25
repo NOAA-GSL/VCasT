@@ -54,10 +54,12 @@ class Aggregation:
                 group_vals = (group_vals,)
             row = dict(zip(self.lead_cols, group_vals))
             n = len(grp)
-    
+            row["count"] = n
+
             # Compute mean and t-based CI for each metric column
             for col in self.estimate_cols:
                 values = grp[col].to_numpy()
+                n_val = len(values)
                 mean_val = np.mean(values)
                 s = np.std(values, ddof=1) if n > 1 else 0.0
                 t_crit = t.ppf(1 - alpha/2, df=n-1) if n > 1 else np.nan

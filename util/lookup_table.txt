@@ -7,10 +7,10 @@ V	HRRR	v	isobaricInhPa	m/s	-	t	V-component wind
 T2M	resHRRR	T2M	-	K	-	f	Temperature at 2m
 SPFH	resHRRR	SPFH	-	kg/kg	-	t	Specific Humidity
 REFC	resHRRR	REFC	-	dBZ	-	f	Reflectivity
-U	resHRRR	UGRD	-	m/s	-	t	U-component wind
-V	resHRRR	VGRD	-	m/s	-	t	V-component wind
+U	resHRRR	UGRD	level	m/s	-	t	U-component wind
+V	resHRRR	VGRD	level	m/s	-	t	V-component wind
 T2M	graphHRRR	T2M	-	K	-	f	Temperature at 2m
 SPFH	graphHRRR	SPFH	-	kg/kg	-	t	Specific Humidity
 REFC	graphHRRR	REFC	-	dBZ	-	f	Reflectivity
-U	graphHRRR	UGRD	-	m/s	-	t	U-component wind
-V	graphHRRR	VGRD	-	m/s	-	t	V-component wind
+U	graphHRRR	UGRD	level	m/s	-	t	U-component wind
+V	graphHRRR	VGRD	level	m/s	-	t	V-component wind

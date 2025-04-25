@@ -5,12 +5,25 @@ import pandas as pd
 
 class Aggregation:
 
-    def __init__(self, config):
+    def __init__(self, config, df = None, stats = None):
 
-        self.df = self.get_df(config.input_file)
+        if df is None:
+            self.df = self.get_df(config.input_file)
+        else:
+            self.df = df
+
         self.lead_cols = config.group_by
-        self.estimate_cols = config.stats
+
+        if stats is None:
+            self.estimate_cols = config.stats
+        else:
+            self.estimate_cols = stats 
+
         self.output_file = config.output_agg_file
+
+        self.ci = False 
+        if hasattr(config,"ci"):
+            self.ci = config.ci
     
     def get_df(self,input_file):
         return pd.read_csv(input_file,sep="\t")
@@ -18,7 +31,7 @@ class Aggregation:
     def run(
         self,
         ci: float = 0.95
-    ) -> None:
+    ) -> pd.DataFrame:
         """
         Compute pooled point estimates and Student's t-based CIs per group (e.g., by lead time) for multiple metrics.
     
@@ -59,19 +72,20 @@ class Aggregation:
             # Compute mean and t-based CI for each metric column
             for col in self.estimate_cols:
                 values = grp[col].to_numpy()
-                n_val = len(values)
                 mean_val = np.mean(values)
-                s = np.std(values, ddof=1) if n > 1 else 0.0
-                t_crit = t.ppf(1 - alpha/2, df=n-1) if n > 1 else np.nan
-                half_width = t_crit * s / np.sqrt(n) if n > 1 else 0.0
-    
                 row[f"{col}_mean"] = mean_val
-                row[f"{col}_bcl"] = mean_val - half_width
-                row[f"{col}_bcu"] = mean_val + half_width
+
+                if self.ci:
+                    s = np.std(values, ddof=1) if n > 1 else 0.0
+                    t_crit = t.ppf(1 - alpha/2, df=n-1) if n > 1 else np.nan
+                    half_width = t_crit * s / np.sqrt(n) if n > 1 else 0.0
+                    row[f"{col}_bcl"] = mean_val - half_width
+                    row[f"{col}_bcu"] = mean_val + half_width
     
             records.append(row)
     
         self.df = pd.DataFrame(records)
+        return self.df
 
     def save_output(self):
         self.df.to_csv(self.output_file,sep="\t")

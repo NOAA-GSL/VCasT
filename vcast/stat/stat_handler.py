@@ -115,11 +115,17 @@ class ReadStat:
     
         if config.aggregate:
             from vcast.stat import Aggregation
+            
+            svars = config.stat_vars
+            
             if self.config.line_type.lower() == "ecnt" and "ratio" in add_columns:
                     df['ratio'] = df['spread_plus_oerr'] / df['rmse']
                     logging.debug("Calculated 'ratio' as spread_plus_oerr / rmse.")
+            
+            if self.config.line_type.lower() == "pct" and "all_thresh" in config.stat_vars:
+                svars = self.column_specific
 
-            agg = Aggregation(config, df, config.stat_vars)
+            agg = Aggregation(config, df, svars)
             df = agg.run()
             logging.info("DataFrame shape after aggregation: %s", df.shape)
             logging.info("Saving aggregated file to %s.", self.config.output_agg_file)

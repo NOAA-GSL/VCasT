@@ -114,23 +114,20 @@ class ReadStat:
             self.save_dataframe(df, config.output_plot_file)
     
         if config.aggregate:
-            self.run_aggregation(df, add_columns)
-
-
-    def run_aggregation(self, df, add_columns = None):
+            from vcast.stat import Aggregation
             
-            if not isinstance(df, pd.DataFrame):
-                df = pd.read_csv(df, sep="\t")
+            svars = config.stat_vars
             
-            logging.info("DataFrame shape after aggregation: %s", df.shape)
-
-            df = self.aggregation(df, self.config.group_by)
-
-            if add_columns is not None:
-                if self.config.line_type.lower() == "ecnt" and "ratio" in add_columns:
+            if self.config.line_type.lower() == "ecnt" and "ratio" in add_columns:
                     df['ratio'] = df['spread_plus_oerr'] / df['rmse']
                     logging.debug("Calculated 'ratio' as spread_plus_oerr / rmse.")
+            
+            if self.config.line_type.lower() == "pct" and "all_thresh" in config.stat_vars:
+                svars = self.column_specific
 
+            agg = Aggregation(config, df, svars)
+            df = agg.run()
+            logging.info("DataFrame shape after aggregation: %s", df.shape)
             logging.info("Saving aggregated file to %s.", self.config.output_agg_file)
             self.save_dataframe(df, self.config.output_agg_file)
 
@@ -302,37 +299,6 @@ class ReadStat:
         except Exception as e:
             logging.exception("Error in filter_by_columns:")
             raise RuntimeError(f"Error in `filter_by_columns`: {str(e)}")
-
-    def aggregation(self, df: pd.DataFrame, group_by_columns: list[str]) -> pd.DataFrame:
-        """
-        Aggregates the given DataFrame by the specified group_by_columns while keeping 
-        the 'date' column if all values in the group are the same, and adds a 'total' 
-        column giving the number of rows in each group.
-    
-        Parameters:
-          - df (pd.DataFrame): Input DataFrame containing the data.
-          - group_by_columns (list[str]): List of column names to group by.
-    
-        Returns:
-          - pd.DataFrame: Aggregated DataFrame, with one row per group, numeric columns
-                          averaged and a 'total' count.
-        """
-        logging.info("Aggregating DataFrame using group_by columns: %s", group_by_columns)
-    
-        # 1) Mean‑aggregate all numeric columns
-        agg_funcs  = {col: "mean" for col in df.select_dtypes(include="number").columns}
-        grouped    = df.groupby(group_by_columns, as_index=False)
-        aggregated = grouped.agg(agg_funcs)
-    
-        # 2) Compute the group sizes via size().reset_index(), then rename the last column to 'total'
-        counts = df.groupby(group_by_columns).size().reset_index()
-        counts.columns = list(group_by_columns) + ["total"]
-    
-        # 3) Merge the counts back into the aggregated DataFrame
-        result = pd.merge(aggregated, counts, on=group_by_columns, how="left")
-    
-        logging.info("Aggregation complete; resulting shape: %s", result.shape)
-        return result
     
     def save_dataframe(self, df, output_file):
         """

@@ -51,3 +51,4 @@ output_plot_file: "/path/to/output.data" # File path for saving the output metri
 aggregate: true                          # Whether to perform data aggregation
 group_by: ["fcst_lead"]                  # Columns to group by for aggregation (order matters)
 output_agg_file: "/path/to/output_agg.data"  # File path for saving aggregated data
+ci: true

@@ -77,6 +77,7 @@ class Preprocessor:
 
     @staticmethod
     def get_meta_data(
+        tag: str,
         df: pd.DataFrame,
         variable: str,        
         model: str,
@@ -110,7 +111,7 @@ class Preprocessor:
         
         if len(subset) > 1:
             raise Exception(
-                f"Ambiguous metadata for variable={variable}, model={model}, level={level}!"
+                f"{tag}:Ambiguous metadata for variable={variable}, model={model}, level={level}!"
             )
 
         row = subset.iloc[0]
@@ -118,10 +119,24 @@ class Preprocessor:
         if str(row['multi_level']).lower() == 't':
             if level is None:
                 raise Exception(
-                    f"Level specification required for variable={variable}, model={model}"
+                    f"{tag}: Level specification required for variable={variable}, model={model}"
                 )
+            
+            ll = level
+            
+        else:
+            if subset['level'].iat[0] != '-':
+                ll = subset['level'].iat[0]
+                if level is not None:
+                    print(f"{tag}: level parameter ignored.")
+            else:
+                try:
+                    int(level)
+                    ll = subset['level'].iat[0]
+                except:
+                    ll = level
 
-        return subset['model_variable'].iat[0], subset['level'].iat[0], subset['level_name'].iat[0], subset['units'].iat[0]
+        return subset['model_variable'].iat[0], ll, subset['level_name'].iat[0], subset['units'].iat[0]
 
     @classmethod
     def process_variables(
@@ -146,9 +161,9 @@ class Preprocessor:
         for tag in ('fcst', 'ref'):
             mdl = getattr(config,f"{tag}_model")
             if hasattr(config,"level"):
-                result[tag] = cls.get_meta_data(df, config.var, mdl, config.level)
+                result[tag] = cls.get_meta_data(tag, df, config.var, mdl, config.level)
             else:
-                result[tag] = cls.get_meta_data(df, config.var, mdl)
+                result[tag] = cls.get_meta_data(tag, df, config.var, mdl)
    
         fcst_units = result['fcst'][3]
         ref_units = result['ref'][3]
@@ -578,22 +593,23 @@ class Preprocessor:
             var_data = ds[var_name]
     
             # Check if the level dimension exists in the dataset
-            if type_of_level and type_of_level in var_data.dims:
-                if level is not None:
-                    if type_of_level in ds:
-                        level_values = ds[type_of_level].values
-                        if level not in level_values:
-                            raise ValueError(f"Level '{level}' not found in dimension '{type_of_level}'. Available levels: {level_values}")
-                        
-                        # Select the specified level
-                        data = var_data.sel({type_of_level: level}).values
+            if type_of_level is not None:
+                if type_of_level in var_data.dims:
+                    if level is not None:
+                        if type_of_level in ds:
+                            level_values = ds[type_of_level].values
+                            if level not in level_values:
+                                raise ValueError(f"Level '{level}' not found in dimension '{type_of_level}'. Available levels: {level_values}")
+                            
+                            # Select the specified level
+                            data = var_data.sel({type_of_level: level}).values
+                        else:
+                            raise ValueError(f"Level dimension '{type_of_level}' not found in dataset.")
                     else:
-                        raise ValueError(f"Level dimension '{type_of_level}' not found in dataset.")
+                        raise ValueError("Level must be specified for non-surface fields.")
                 else:
-                    raise ValueError("Level must be specified for non-surface fields.")
-            else:
-                # Assume surface field (no level dimension)
-                data = var_data.values
+                    # Assume surface field (no level dimension)
+                    data = var_data.values
     
             return data, lats, lons
     

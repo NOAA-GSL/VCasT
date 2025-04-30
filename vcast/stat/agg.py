@@ -73,7 +73,7 @@ class Aggregation:
             for col in self.estimate_cols:
                 values = grp[col].to_numpy()
                 mean_val = np.mean(values)
-                row[f"{col}_mean"] = mean_val
+                row[f"{col}"] = mean_val
 
                 if self.ci:
                     s = np.std(values, ddof=1) if n > 1 else 0.0

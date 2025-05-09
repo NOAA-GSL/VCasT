@@ -11,7 +11,7 @@ from vcast.stat import AVAILABLE_VARS
 class Preprocessor:
     """Handles input/output file preparation and date formatting."""
 
-    _TABLE_PATH = Path(__file__).resolve().parents[2] / 'util' / 'lookup_table.txt'
+    _TABLE_PATH = Path(__file__).resolve().parents[2] / 'util' / 'lookup_table-v2.txt'
 
     @staticmethod
     def read_input_data(input_file, var_name, type_of_level, level, date, lead_time):
@@ -60,7 +60,7 @@ class Preprocessor:
         return data, lat_grid, lon_grid, stype
 
     @classmethod
-    def get_lookup_table_path(cls, check: bool = True) -> Path:
+    def get_lookup_table_path(cls, config, check: bool = True) -> Path:
         """
         Return the path to the lookup table file, optionally verifying its existence.
 
@@ -70,9 +70,16 @@ class Preprocessor:
         Raises:
             LookupTableNotFound: if file is missing when check is True.
         """
+
         path = cls._TABLE_PATH
+        if hasattr(config, 'vtable'):
+            if os.path.exists(config.vtable):
+                path = config.vtable
+            else:
+                print("WARNING: Vtable file does not exist. Using default...")
+        
         if check and not path.is_file():
-            raise Exception(f"Lookup table not found at {path}")
+            raise Exception(f"Vtable not found at {path}")
         return path
 
     @staticmethod
@@ -81,7 +88,6 @@ class Preprocessor:
         df: pd.DataFrame,
         variable: str,        
         model: str,
-        level: str = None
     ) -> tuple[str, str, str]:
         """
         Extract `model_variable`, `level`, and `level_name` for a given forecast or reference.
@@ -90,8 +96,6 @@ class Preprocessor:
             df: DataFrame loaded from the lookup table.
             variable: the `variable` column value.
             model: the `model` column value.
-            level: the level to match.
-
 
         Returns:
             Tuple of (model_variable, level, level_name).
@@ -106,43 +110,22 @@ class Preprocessor:
 
         if subset.empty:
             raise Exception(
-                f"No metadata for variable={variable}, model={model}!"
+                f"No metadata for variable={variable}, model={model}."
             )
         
         if len(subset) > 1:
             raise Exception(
-                f"{tag}:Ambiguous metadata for variable={variable}, model={model}, level={level}!"
+                f"{tag}:Ambiguous metadata for variable={variable}, model={model}."
             )
 
-        row = subset.iloc[0]
-
-        if str(row['multi_level']).lower() == 't':
-            if level is None:
-                raise Exception(
-                    f"{tag}: Level specification required for variable={variable}, model={model}"
-                )
-            
-            ll = level
-            
-        else:
-            if subset['level'].iat[0] != '-':
-                ll = subset['level'].iat[0]
-                if level is not None:
-                    print(f"{tag}: level parameter ignored.")
-            else:
-                try:
-                    int(level)
-                    ll = subset['level'].iat[0]
-                except:
-                    ll = level
-
-        return subset['model_variable'].iat[0], ll, subset['level_name'].iat[0], subset['units'].iat[0]
+        return subset['model_variable'].iat[0], subset['level'].iat[0], subset['level_name'].iat[0], subset['units'].iat[0], subset['description'].iat[0]
 
     @classmethod
     def process_variables(
         cls,
+        var,
         config
-    ) -> dict[str, tuple[str, int, str]]:
+    ) -> dict[str, tuple[str, int, str, str]]:
         """
         For both forecast (`fcst`) and reference (`ref`), lookup metadata.
 
@@ -154,17 +137,14 @@ class Preprocessor:
             A dict with keys 'fcst' and 'ref', each mapping to the
             (model_variable, level, level_name) tuple.
         """
-        path = cls.get_lookup_table_path()
+        path = cls.get_lookup_table_path(config)
         df = pd.read_csv(path, sep='\t', index_col=False)
 
         result = {}
         for tag in ('fcst', 'ref'):
             mdl = getattr(config,f"{tag}_model")
-            if hasattr(config,"level"):
-                result[tag] = cls.get_meta_data(tag, df, config.var, mdl, config.level)
-            else:
-                result[tag] = cls.get_meta_data(tag, df, config.var, mdl)
-   
+            result[tag] = cls.get_meta_data(tag, df, var, mdl)
+            
         fcst_units = result['fcst'][3]
         ref_units = result['ref'][3]
    
@@ -213,7 +193,7 @@ class Preprocessor:
         if config_type == "stat":
             required_attributes = [
                 "start_date", "end_date", "interval_hours",  # "time" is now optional
-                "fcst_file_template", "var","fcst_model",
+                "fcst_file_template", "vars","fcst_model",
                 "ref_file_template", "ref_model",
                 "output_dir", "output_filename",
                 "stat_type", "stat_name",
@@ -225,16 +205,30 @@ class Preprocessor:
             missing = [attr for attr in required_attributes if not hasattr(config, attr)]
             if missing:
                 raise ValueError("Missing required configuration attributes: " + ", ".join(missing))
+            
+            if isinstance(config.vars, str):
+                config.vars = [config.vars]
 
-            res = Preprocessor.process_variables(config)
+            config.fcst_var = []
+            config.fcst_level = []
+            config.fcst_type_of_level = []
+            config.ref_var = []
+            config.ref_level = []
+            config.ref_type_of_level = []
+            config.var_desc = []
 
-            config.fcst_var = res['fcst'][0]
-            config.fcst_level = res['fcst'][1]
-            config.fcst_type_of_level = res['fcst'][2]
+            for var in config.vars:
+                res = Preprocessor.process_variables(var, config)
+    
+                config.fcst_var.append(res['fcst'][0])
+                config.fcst_level.append(res['fcst'][1])
+                config.fcst_type_of_level.append(res['fcst'][2])
 
-            config.ref_var = res['ref'][0]
-            config.ref_level = res['ref'][1]
-            config.ref_type_of_level = res['ref'][2]
+                config.var_desc.append(res['fcst'][4])
+    
+                config.ref_var.append(res['ref'][0])
+                config.ref_level.append(res['ref'][1])
+                config.ref_type_of_level.append(res['ref'][2])
 
             # Define the expected date format for main dates
             date_format = "%Y-%m-%d_%H:%M:%S"

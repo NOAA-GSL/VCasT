@@ -19,7 +19,7 @@ members: ["ens_0", "ens_1"] # If set, it loops over all the ensemble members
 # ====================================================
 # Forecast Configuration
 # ====================================================
-var: "T2M"                         # Variable name (e.g., 2-meter temperature)
+vars: "T2M"                         # Variable name (e.g., 2-meter temperature)
 
 # The forecast configuration defines the file template and variable settings for forecast data.
 fcst_model: "HRRR"  # forecast model

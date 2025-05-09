@@ -472,8 +472,8 @@ def compute_fss(forecast_values, reference_values, fcst_threshold, ref_threshold
     kernel = np.ones((window_size, window_size), dtype=float)
 
     # Compute the fraction of event occurrence in the neighborhood using 2D convolution
-    fcst_fractions = convolve2d(fcst_binary, kernel, mode='same', boundary='fill', fillvalue=0)
-    ref_fractions = convolve2d(ref_binary, kernel, mode='same', boundary='fill', fillvalue=0)
+    fcst_fractions = convolve2d(fcst_binary, kernel, mode='valid')
+    ref_fractions = convolve2d(ref_binary, kernel, mode='valid')
 
     # Normalize the fractions by the area of the kernel
     kernel_area = window_size ** 2

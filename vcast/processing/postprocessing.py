@@ -55,7 +55,7 @@ class StatiscalSignificance:
         df_model_a: pd.DataFrame,
         df_model_b: pd.DataFrame,
         metric: Literal["rmse", "bias", "fss"] = "rmse",
-        n_iterations: int = 10000,
+        n_iterations: int = 1000,
         ci_percentile: float = 95.0
     ) -> pd.DataFrame:
         """

@@ -40,7 +40,7 @@ def truncate_to_10_decimals(value):
     else:
         raise TypeError("Input must be a number or a list of numbers.")
 
-def process_deterministic_multiprocessing(date, lead_time, member, test, config):
+def process_deterministic_multiprocessing(date, lead_time, member, test, idx, config):
     """
     Processes a single date entry in parallel using multiprocessing.
     
@@ -58,16 +58,16 @@ def process_deterministic_multiprocessing(date, lead_time, member, test, config)
         fcst_file = Preprocessor.format_file_template(config.fcst_file_template, date, member, lead_time)
         ref_file = Preprocessor.format_file_template(config.ref_file_template, date, member, lead_time)
         
-        logging.info(f"Processing {date} with lead time {lead_time} for member {member}")
+        logging.info(f"Processing {config.var_desc[idx]} - {date} with lead time {lead_time} for member {member}")
 
         # Read forecast and reference data
         fcst_data, flats, flons, _ = Preprocessor.read_input_data(
-            fcst_file, config.fcst_var, config.fcst_type_of_level, config.fcst_level, date, lead_time
+            fcst_file, config.fcst_var[idx], config.fcst_type_of_level[idx], config.fcst_level[idx], date, lead_time
         )
         ref_data, rlats, rlons, _ = Preprocessor.read_input_data(
-            ref_file, config.ref_var, config.ref_type_of_level, config.ref_level, date, lead_time
+            ref_file, config.ref_var[idx], config.ref_type_of_level[idx], config.ref_level[idx], date, lead_time
         )
-        
+    
         # Apply interpolation if enabled
         if config.interpolation:
             fcst_interpolated_data = interpolate_to_target_grid(fcst_data, flats, flons, config.target_grid) 
@@ -77,7 +77,7 @@ def process_deterministic_multiprocessing(date, lead_time, member, test, config)
             ref_interpolated_data = ref_data
 
         # Compute statistics
-        stats = [date, lead_time]
+        stats = [date, lead_time, config.fcst_var[idx], config.fcst_level[idx]]
         if config.cmem:
             stats += [member]
         
@@ -141,7 +141,7 @@ def process_deterministic_multiprocessing(date, lead_time, member, test, config)
             else:
                 stats.append(tstat)
             
-        logging.info(f"Completed processing for {date} with lead time {lead_time} for member {member}")
+        logging.info(f"Completed processing for {config.var_desc[idx]} - {date} with lead time {lead_time} for member {member}")
 
         return stats
 
@@ -214,11 +214,12 @@ def process_in_parallel(config, output, test):
 
     if config.stat_type == "det":
         worker_function = partial(process_deterministic_multiprocessing, config=config)
-        for date in dates:
-            for lead_time in config.lead_times:
-                for member in config.members:    
-                    task = (date,lead_time,member,test)
-                    tasks.append(task)
+        for idx, _ in enumerate(config.fcst_var):
+            for date in dates:
+                for lead_time in config.lead_times:
+                    for member in config.members:    
+                        task = (date,lead_time,member,test, idx)
+                        tasks.append(task)
 
     elif config.stat_type == "ens":
         worker_function = partial(process_ensemble_multiprocessing, config=config)

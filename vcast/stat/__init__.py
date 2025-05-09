@@ -10,7 +10,7 @@ Modules:
 """
 
 from .constants import *
-from .stat_handler import ReadStat
+from .stat_handler import *
 from .stats import *
 from .ensemble_stats import *
 from .agg import Aggregation

@@ -86,4 +86,4 @@ xticks: [0,3,6,9,12,15,18,21,24,27,30,33,36]  # Custom x-axis tick marks (for ex
 # Statistical Significance Options
 # ------------------------
 significance: true              # Enable plotting of statistically significant markers/points
-ci: true                        # Enable plotting of confidence intervals (CI)
+ci: ['rmse','mae']                        # Enable plotting of confidence intervals (CI)

@@ -47,7 +47,7 @@ class OutputFileHandler:
         self.writer = csv.writer(self.output_file, delimiter="\t")
 
         # Prepare the header row
-        header = ["date", "fcst_lead"]
+        header = ["date", "fcst_lead", "fcst_var", "level"]
         
         if ens:
             header += ["model"]

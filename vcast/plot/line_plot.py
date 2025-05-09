@@ -6,22 +6,40 @@ import numpy as np
 from matplotlib.colors import to_rgb
 
 def parse_rgb_string(color_str):
+    """
+    Parse a color string into a normalized RGB tuple in the range [0, 1].
+
+    Accepts:
+    - Named colors or hex codes (via matplotlib)
+    - RGB tuples or lists in "(r,g,b)" or "[r, g, b]" format
+      with values in either [0, 1] or [0, 255]
+
+    Returns:
+    - (True, (r, g, b)) if successful
+    - (False, None) if parsing fails
+    """
     try:
-        # Try using matplotlib for named colors or hex codes
+        # Named colors or hex codes
         return True, to_rgb(color_str)
     except ValueError:
         pass
-    
-    try:
-        # Try parsing a string tuple like "(0,1,0)" or "[0.5, 0.5, 0.5]"
-        color_str = color_str.strip("()[]")  # Remove parentheses or brackets
-        parts = [float(x.strip()) for x in color_str.split(",")]
-        if len(parts) == 3 and all(0 <= x <= 1 for x in parts):
-            return True, tuple(parts)
-    except Exception:
-        pass
 
-    return False, None
+    try:
+        # Strip brackets or parentheses and split
+        color_str = color_str.strip("()[]")
+        parts = [float(x.strip()) for x in color_str.split(",")]
+        if len(parts) != 3:
+            return False, None
+        
+        # Normalize if any value is >1 (assume it's 0–255 scale)
+        if any(x > 1.0 for x in parts):
+            parts = [min(max(x / 255.0, 0), 1) for x in parts]
+        else:
+            parts = [min(max(x, 0), 1) for x in parts]
+
+        return True, tuple(parts)
+    except Exception:
+        return False, None
 
 class LinePlot(BasePlot):
     def __init__(self, config):
@@ -184,39 +202,37 @@ class LinePlot(BasePlot):
                 label=f"{ylabel} CI"
             )
 
-        signif = False
         if hasattr(self.config, "significance"):
             if self.config.significance:
-                signif = True
-                x_values = np.array(x_values)
-                y_values = np.array(y_values)
-       
-                significant_mask = data["significant"]
-                self.ax.scatter(
-                    x_values[significant_mask],
-                    y_values[significant_mask],
-                    color=color,
-                    marker=self.config.line_marker[i],
-                    label=f"{ylabel} (significant)"
-                )
+                if "significant" in data.columns:
+                    signif = True
+                    x_values = np.array(x_values)
+                    y_values = np.array(y_values)
+                    
+                    significant_mask = data["significant"]
 
-                self.ax.plot(
-                    x_values,
-                    y_values,
-                    color=color,
-                    linestyle=self.config.line_type[i],
-                    linewidth=self.config.line_width[i],
-                    label=ylabel
-                )
+                    y_min = self.ax.get_ylim()[0]
+                    y_margin = (self.ax.get_ylim()[1] - y_min) * 0.02  # 2% margin
+                    y_marker = y_min - y_margin
 
-        if not signif:            
-            self.ax.plot(
-                x_values, y_values * scale,
-                color=color,
-                linestyle=self.config.line_type[i],
-                marker=self.config.line_marker[i],
-                linewidth=self.config.line_width[i],
-                label=ylabel
+                    # Plot dot markers at the bottom for significant points
+                    self.ax.scatter(
+                        x_values[significant_mask],
+                        np.full(np.sum(significant_mask), y_marker + 2 * y_margin),
+                        color=color,
+                        marker="o",
+                        s=20,  # size of the dot
+                        label=f"{ylabel} (significant)",
+                        zorder=10
+                    )
+
+        self.ax.plot(
+            x_values, y_values * scale,
+            color=color,
+            linestyle=self.config.line_type[i],
+            marker=self.config.line_marker[i],
+            linewidth=self.config.line_width[i],
+            label=ylabel
             )
 
         if hasattr(self.config, "average"):

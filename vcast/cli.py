@@ -8,7 +8,8 @@ from vcast.metstat import ReadStat
 from vcast.agg import Aggregation
 from vcast.plot import LinePlot, Reliability, PerformanceDiagram
 from vcast.processing import process_in_parallel, StatiscalSignificance
-from vcast.io import ConfigLoader, OutputFileHandler, FileChecker
+from vcast.io import ConfigLoader, OutputFileHandler
+from vcast.preprocess import FileChecker, Preprocessor
 
 
 def detect_yaml_config(file_path):
@@ -138,6 +139,8 @@ def handle_statistical_analysis(config, test):
 
     print(f"Running statistical analysis...")
 
+    config = Preprocessor.validate_config(config,"stat")
+
     output = OutputFileHandler(config)
             
     process_in_parallel(output.config, output, test)
@@ -195,6 +198,7 @@ def main():
     action = detect_yaml_config(args.file_path)
     if action in ["convert", "plot", "stats", "agg", "sig"]:
         config = ConfigLoader(args.file_path)
+
         if action == "convert":        
             handle_conversion(config)
         elif action == "plot":

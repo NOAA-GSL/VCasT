@@ -2,7 +2,6 @@ import pandas as pd
 import glob
 import vcast.metstat.constants as cn
 from vcast.metstat import AVAILABLE_LINE_TYPES
-import numpy as np
 import logging
 
 class ReadStat:
@@ -85,7 +84,7 @@ class ReadStat:
         if hasattr(self, 'column_specific'):
             if "all_thresh" in config.stat_vars:
                 add_columns = [var for var in config.stat_vars if var != "all_thresh"]
-                add_columns = np.unique(self.column_specific + add_columns)
+                add_columns = sorted(set(self.column_specific + add_columns))
                 logging.debug("Unique stat vars after combining column_specific: %s", add_columns)
 
         for i in add_columns:

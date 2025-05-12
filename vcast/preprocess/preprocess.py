@@ -2,11 +2,11 @@ from datetime import datetime, timedelta
 import numpy as np
 import pygrib
 import xarray as xr
-import re
 import os
 from pathlib import Path
 import pandas as pd
 from vcast.metstat import AVAILABLE_VARS 
+from vcast.preprocess import FileChecker
 
 class Preprocessor:
     """Handles input/output file preparation and date formatting."""
@@ -15,7 +15,6 @@ class Preprocessor:
 
     @staticmethod
     def read_input_data(input_file, var_name, type_of_level, level, date, lead_time):
-        from vcast.io import FileChecker
         """
         Reads forecast or observation data from a given input file.
 
@@ -274,7 +273,7 @@ class Preprocessor:
             if not isinstance(config.stat_name, list):
                 raise ValueError("stat_name must be a list.")
             for stat in config.stat_name:
-                stat, _, _, _ = Preprocessor.parse_metric_string(stat)
+                stat = stat.split(":")[0]
                 if stat.lower() not in AVAILABLE_VARS:
                     allowed = ", ".join(sorted(AVAILABLE_VARS))
                     raise ValueError(f"Invalid stat in stat_name: '{stat}'. Allowed values: {allowed}")
@@ -355,36 +354,6 @@ class Preprocessor:
         else:
             # For other config_types, add alternative validation logic as needed.
             return config
-
-    @staticmethod
-    def parse_metric_string(var_string):
-        """
-        Parse a metric specifier of the form:
-            "metric"             → returns (metric, None, None)
-            "metric:thresh"      → returns (metric, float(thresh), None)
-            "metric:thresh:rad"  → returns (metric, float(thresh), int(rad))
-    
-        Raises ValueError if the format isn't recognized.
-        """
-        parts = var_string.split(":")
-        metric = parts[0]
-    
-        # no extra args
-        if len(parts) == 1:
-            return metric, None, None, None
-    
-        # one extra arg  → threshold
-        if len(parts) == 2:
-            return metric, float(parts[1]), None, None
-    
-        # two extra args → threshold and radius
-        if len(parts) == 3:
-            return metric, float(parts[1]), float(parts[2]), None
-        
-        if len(parts) == 4:
-            return metric, float(parts[1]), float(parts[2]), float(parts[3])
-    
-        raise ValueError(f"Invalid metric specifier: '{var_string}'")
 
     @staticmethod
     def read_grib2(grib2_file, var_name, type_of_level, level):

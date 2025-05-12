@@ -5,7 +5,8 @@ from vcast.stat import compute_bias, compute_correlation, compute_csi, compute_f
                        compute_gss,compute_mae,compute_pod,compute_quantiles,compute_rmse, \
                        compute_scores,compute_stdev,compute_success_ratio, compute_fbias
 from vcast.stat import compute_fss_ensemble, compute_reliability
-from vcast.io import Preprocessor
+from vcast.preprocess import Preprocessor
+from vcast.io import OutputFileHandler
 import numpy as np
 import logging
 import math
@@ -86,7 +87,7 @@ def process_deterministic_multiprocessing(date, lead_time, member, test, idx, co
         parm2 = []
         parm3 = []
         for stat in config.stat_name:
-            s, p1, p2, p3 = Preprocessor.parse_metric_string(stat)
+            s, p1, p2, p3 = OutputFileHandler.parse_metric_string(stat)
             stat_names.append(s)
             parm1.append(p1)
             parm2.append(p2)

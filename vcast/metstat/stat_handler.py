@@ -1,9 +1,10 @@
 import pandas as pd
 import glob
-import vcast.stat.constants as cn
-from vcast.stat import AVAILABLE_LINE_TYPES
+import vcast.metstat.constants as cn
+from vcast.metstat import AVAILABLE_LINE_TYPES
 import numpy as np
 import logging
+from vcast.agg import Aggregation
 
 class ReadStat:
     def __init__(self, config):
@@ -114,7 +115,6 @@ class ReadStat:
             self.save_dataframe(df, config.output_plot_file)
     
         if config.aggregate:
-            from vcast.stat import Aggregation
             
             svars = config.stat_vars
             

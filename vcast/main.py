@@ -4,7 +4,8 @@ import os
 import yaml
 from colorama import Fore, Style  
 
-from vcast.stat import ReadStat, Aggregation
+from vcast.metstat import ReadStat
+from vcast.agg import Aggregation
 from vcast.plot import LinePlot, Reliability, PerformanceDiagram
 from vcast.processing import process_in_parallel, StatiscalSignificance
 from vcast.io import ConfigLoader, OutputFileHandler, FileChecker

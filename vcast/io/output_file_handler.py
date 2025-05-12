@@ -1,6 +1,6 @@
 import os
 import csv
-from vcast.stat import AVAILABLE_VARS
+from vcast.metstat import AVAILABLE_VARS
 
 class OutputFileHandler:
     """

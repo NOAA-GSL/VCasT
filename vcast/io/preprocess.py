@@ -6,7 +6,7 @@ import re
 import os
 from pathlib import Path
 import pandas as pd
-from vcast.stat import AVAILABLE_VARS 
+from vcast.metstat import AVAILABLE_VARS 
 
 class Preprocessor:
     """Handles input/output file preparation and date formatting."""

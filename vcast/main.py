@@ -91,8 +91,21 @@ def handle_conversion(config):
     
     rs = ReadStat(config)
 
-    rs.run_all()
-    
+    df, add_columns, svars = rs.run_all()
+
+    if hasattr(config,'aggregate'):
+        if config.aggregate:
+            
+            if config.line_type.lower() == "ecnt" and "ratio" in add_columns:
+                    df['ratio'] = df['spread_plus_oerr'] / df['rmse']
+                    print("Calculated 'ratio' as spread_plus_oerr / rmse.")
+
+            agg = Aggregation(config, df, svars)
+            df = agg.run()
+            print("DataFrame shape after aggregation: %s", df.shape)
+            print("Saving aggregated file to %s.", config.output_agg_file)
+            rs.save_dataframe(df, config.output_agg_file)
+
     sys.exit(0)
 
 def handle_plotting(config):

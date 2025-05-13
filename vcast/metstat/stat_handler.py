@@ -1,8 +1,7 @@
 import pandas as pd
 import glob
-import vcast.stat.constants as cn
-from vcast.stat import AVAILABLE_LINE_TYPES
-import numpy as np
+import vcast.metstat.constants as cn
+from vcast.metstat import AVAILABLE_LINE_TYPES
 import logging
 
 class ReadStat:
@@ -85,7 +84,7 @@ class ReadStat:
         if hasattr(self, 'column_specific'):
             if "all_thresh" in config.stat_vars:
                 add_columns = [var for var in config.stat_vars if var != "all_thresh"]
-                add_columns = np.unique(self.column_specific + add_columns)
+                add_columns = sorted(set(self.column_specific + add_columns))
                 logging.debug("Unique stat vars after combining column_specific: %s", add_columns)
 
         for i in add_columns:
@@ -112,24 +111,13 @@ class ReadStat:
         if config.output_file:
             logging.info("Saving output file to %s.", config.output_plot_file)
             self.save_dataframe(df, config.output_plot_file)
-    
-        if config.aggregate:
-            from vcast.stat import Aggregation
-            
-            svars = config.stat_vars
-            
-            if self.config.line_type.lower() == "ecnt" and "ratio" in add_columns:
-                    df['ratio'] = df['spread_plus_oerr'] / df['rmse']
-                    logging.debug("Calculated 'ratio' as spread_plus_oerr / rmse.")
-            
-            if self.config.line_type.lower() == "pct" and "all_thresh" in config.stat_vars:
-                svars = self.column_specific
 
-            agg = Aggregation(config, df, svars)
-            df = agg.run()
-            logging.info("DataFrame shape after aggregation: %s", df.shape)
-            logging.info("Saving aggregated file to %s.", self.config.output_agg_file)
-            self.save_dataframe(df, self.config.output_agg_file)
+        svars = config.stat_vars
+        
+        if self.config.line_type.lower() == "pct" and "all_thresh" in config.stat_vars:
+            svars = self.column_specific
+
+        return df, add_columns, svars
 
     def all_columns(self, line_type, line_type_columns=cn.LINE_TYPE_COLUMNS):
         # Get the additional columns based on line type, or an empty list if not found

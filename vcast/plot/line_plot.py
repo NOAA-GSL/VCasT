@@ -2,7 +2,7 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import matplotlib.dates as mdates
 from .base_plot import BasePlot
-import numpy as np
+import math
 from matplotlib.colors import to_rgb
 
 def parse_rgb_string(color_str):
@@ -147,7 +147,7 @@ class LinePlot(BasePlot):
             x_values = mdates.date2num(merged["date"])
         elif "fcst_lead" in data.columns:
             x_values = data["fcst_lead"].astype(int).tolist()
-            if np.mean(x_values) > 10000:
+            if sum(x_values) / len(x_values) > 10000:
                 x_values = [val / 10000 for val in x_values]
         else:
             raise ValueError(f"'date' column not found in the file {file}.")
@@ -206,22 +206,25 @@ class LinePlot(BasePlot):
             if self.config.significance:
                 if "significant" in data.columns:
                     signif = True
-                    x_values = np.array(x_values)
-                    y_values = np.array(y_values)
-                    
                     significant_mask = data["significant"]
-
+                    
+                    x_values = list(x_values)
+                    y_values = list(y_values)
+                    
                     y_min = self.ax.get_ylim()[0]
                     y_margin = (self.ax.get_ylim()[1] - y_min) * 0.02  # 2% margin
                     y_marker = y_min - y_margin
-
+                    
+                    # Extract significant x-values using list comprehension
+                    x_sig = [x for x, is_sig in zip(x_values, significant_mask) if is_sig]
+                    
                     # Plot dot markers at the bottom for significant points
                     self.ax.scatter(
-                        x_values[significant_mask],
-                        np.full(np.sum(significant_mask), y_marker + 2 * y_margin),
+                        x_sig,
+                        [y_marker + 2 * y_margin] * len(x_sig),
                         color=color,
                         marker="o",
-                        s=20,  # size of the dot
+                        s=20,
                         label=f"{ylabel} (significant)",
                         zorder=10
                     )
@@ -238,7 +241,8 @@ class LinePlot(BasePlot):
         if hasattr(self.config, "average"):
             if self.config.average:
                 # Compute the average, ignoring NaN values.
-                avg_value = np.nanmean(y_values * scale)
+                scaled_values = [(y * scale) for y in y_values if y is not None and not math.isnan(y)]
+                avg_value = sum(scaled_values) / len(scaled_values) if scaled_values else float("nan")
                 self.ax.axhline(
                     y=avg_value ,
                     color=color,

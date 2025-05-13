@@ -15,10 +15,12 @@ Modules:
 """
 
 # Importing core functionalities for external use
-from .io import ConfigLoader, OutputFileHandler, FileChecker, Preprocessor
+from .io import ConfigLoader, OutputFileHandler
+from .preprocess import FileChecker, Preprocessor
 from .processing import process_in_parallel, interpolate_to_target_grid, StatiscalSignificance
-from .stat import ReadStat
+from .metstat import ReadStat
 from .plot import BasePlot, LinePlot, Reliability, PerformanceDiagram
+from .agg import Aggregation
 
 __all__ = [
     "ConfigLoader",
@@ -32,5 +34,6 @@ __all__ = [
     "LinePlot", 
     "Reliability", 
     "PerformanceDiagram",
-    "StatiscalSignificance"
+    "StatiscalSignificance",
+    "Aggregation"
 ]

@@ -7,10 +7,7 @@ from colorama import Fore, Style
 from vcast.metstat import ReadStat
 from vcast.agg import Aggregation
 from vcast.plot import LinePlot, Reliability, PerformanceDiagram
-from vcast.processing import process_in_parallel, StatiscalSignificance
-from vcast.io import ConfigLoader, OutputFileHandler
-from vcast.preprocess import FileChecker, Preprocessor
-
+from vcast.io import ConfigLoader
 
 def detect_yaml_config(file_path):
     """
@@ -50,35 +47,6 @@ def detect_yaml_config(file_path):
         print(Fore.RED + f"Error reading YAML file: {file_path} - {e}" + Style.RESET_ALL)
 
     return None  # If the file doesn't match any known YAML format
-
-
-def handle_file_check(file_path):
-    """
-    Handles file checking for NetCDF and GRIB2 formats.
-    
-    Args:
-        file_path (str): Path to the file to check.
-    """
-    print(f"Checking file: {file_path}...")
-    
-    fc = FileChecker(file_path)
-    file_type = fc.identify_file_type()
-
-    if file_type == "netcdf":
-        print(Fore.GREEN + "File Type: NetCDF" + Style.RESET_ALL)
-        fc.check_netcdf()
-    elif file_type == "grib2":
-        print(Fore.GREEN + "File Type: GRIB2" + Style.RESET_ALL)
-        fc.check_grib2()
-    else:
-        print(Fore.RED + "Unknown file type. Only NetCDF and GRIB2 are supported." + Style.RESET_ALL)
-        sys.exit(1)
-
-    print("\n" + "-" * 10)
-    print(Fore.GREEN + "File check passed." + Style.RESET_ALL)
-    print("-" * 10 + "\n")
-    sys.exit(0)
-
 
 def handle_conversion(config):
     """
@@ -137,6 +105,14 @@ def handle_statistical_analysis(config, test):
         config (ConfigLoader): Configuration object.
     """
 
+    from vcast.processing import process_in_parallel
+    from vcast.preprocess import Preprocessor
+    from vcast.io import OutputFileHandler
+
+    if Preprocessor is None or process_in_parallel is None:
+        print(Fore.RED + "Statistical analysis requires the 'processing' extras. Use: pip install vcast[all]" + Style.RESET_ALL)
+        sys.exit(1)
+
     print(f"Running statistical analysis...")
 
     config = Preprocessor.validate_config(config,"stat")
@@ -162,6 +138,12 @@ def handle_aggregation(config):
     sys.exit(0)
 
 def handle_statistical_significance(config):
+    
+    from vcast.processing import StatiscalSignificance
+
+    if StatiscalSignificance is None:
+        print(Fore.RED + "Statistical significance requires the 'processing' extras. Use: pip install vcast[all]" + Style.RESET_ALL)
+        sys.exit(1)
 
     print(f"Running statistical significance...")
 
@@ -188,7 +170,6 @@ def main():
         action="store_true",
         help="Run the VCasT in test mode."
     )
-
     args = parser.parse_args()
 
     if not os.path.exists(args.file_path):
@@ -209,18 +190,9 @@ def main():
             handle_aggregation(config)
         elif action == "sig":
             handle_statistical_significance(config)
-
-    # **Step 2: If not YAML, try checking if it's NetCDF or GRIB2**
-    print(f"Attempting to detect file format for: {args.file_path} ...")
-    
-    fc = FileChecker(args.file_path)
-    file_type = fc.identify_file_type()
-
-    if file_type == "netcdf" or file_type == "grib2":
-        handle_file_check(args.file_path)
-
-    # **Step 3: If it doesn't match anything, raise an error**
-    raise Exception(f"Unrecognized file type or unsupported format: {args.file_path}")
+        else:
+            print(Fore.RED + f"Unsupported action type: {action}" + Style.RESET_ALL)
+            sys.exit(1)
 
 if __name__ == "__main__":
     main()

@@ -64,13 +64,15 @@ class ReadStat:
             df = self.filter_by_string(df, config.string_filters)
             logging.info("DataFrame shape after applying string filters: %s", df.shape)
 
-        if config.thresholds:  # Check if self.thresholds is not empty
-            df = self.filter_by_threshold(df, config.thresholds)
-            logging.info("DataFrame shape after applying threshold filters: %s", df.shape)
+        if hasattr(config, 'thresholds'):
+            if config.thresholds:  # Check if self.thresholds is not empty
+                df = self.filter_by_threshold(df, config.thresholds)
+                logging.info("DataFrame shape after applying threshold filters: %s", df.shape)
 
-        if config.columns_to_keep:  # Check if self.columns_to_keep is not empty
-            df = self.filter_by_columns(df, config.columns_to_keep)
-            logging.info("DataFrame shape after filtering by columns: %s", df.shape)
+        if hasattr(config, 'columns_to_keep'):
+            if config.columns_to_keep:  # Check if self.columns_to_keep is not empty
+                df = self.filter_by_columns(df, config.columns_to_keep)
+                logging.info("DataFrame shape after filtering by columns: %s", df.shape)
 
         # Call only if reformat_file is True
         if config.reformat_file:

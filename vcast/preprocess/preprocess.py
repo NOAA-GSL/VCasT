@@ -77,7 +77,7 @@ class Preprocessor:
             else:
                 print("WARNING: Vtable file does not exist. Using default...")
         
-        if check and not path.is_file():
+        if check and not os.path.isfile(path):
             raise Exception(f"Vtable not found at {path}")
         return path
 

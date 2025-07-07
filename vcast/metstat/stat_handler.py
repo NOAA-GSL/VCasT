@@ -3,6 +3,7 @@ import glob
 import vcast.metstat.constants as cn
 from vcast.metstat import AVAILABLE_LINE_TYPES
 import logging
+from collections import Counter
 
 class ReadStat:
     def __init__(self, config):
@@ -144,21 +145,30 @@ class ReadStat:
             next(file)  # Skip the first line (header row)
             for line in file:
                 row_data = line.split()  # Split the line into columns
-                # Check if the line contains the specific line type
-                if row_data[headers.index("line_type")].lower() == line_type.lower():
-                    if line_type.lower() in ['pct', 'pstd']:
-                        fheaders = self.update_headers(headers, row_data, line_type.lower())
-                        logging.debug("Updated headers for %s: %s", line_type, fheaders)
-                    if len(row_data) != len(fheaders):
-                        headers = self.all_columns(line_type, cn.LINE_TYPE_COLUMNS_OLD)
-                        fheaders = headers
-                        logging.debug("Re-adjusted headers using old columns for file: %s", file_path)
+                if line_type.lower() == "mode_cts":
+                    fheaders = cn.LINE_TYPE_COLUMNS["mode_cts"]
                     if len(row_data) == len(fheaders):
                         row_dict = dict(zip(fheaders, row_data[:len(fheaders)]))
                         matching_rows.append(row_dict)
                     else:
                         logging.warning("Skipping line in %s due to mismatched column count.", file_path)
-        df = pd.DataFrame(matching_rows, columns=fheaders)
+                else:
+                    # Check if the line contains the specific line type
+                    if row_data[headers.index("line_type")].lower() == line_type.lower():
+                        if line_type.lower() in ['pct', 'pstd']:
+                            fheaders = self.update_headers(headers, row_data, line_type.lower())
+                            logging.debug("Updated headers for %s: %s", line_type, fheaders)
+                        if len(row_data) != len(fheaders):
+                            headers = self.all_columns(line_type, cn.LINE_TYPE_COLUMNS_OLD)
+                            fheaders = headers
+                            logging.debug("Re-adjusted headers using old columns for file: %s", file_path)
+                        if len(row_data) == len(fheaders):
+                            row_dict = dict(zip(fheaders, row_data[:len(fheaders)]))
+                            matching_rows.append(row_dict)
+                        else:
+                            logging.warning("Skipping line in %s due to mismatched column count.", file_path)
+
+        df = pd.DataFrame(matching_rows, columns=fheaders)        
         logging.info("Processed file %s; resulting DataFrame shape: %s", file_path, df.shape)
         return df
 
@@ -173,7 +183,7 @@ class ReadStat:
         elif line_type == 'pstd':
             self.column_specific = [f"thresh_{i}" for i in range(1, number_of_thresholds + 1)]
             hh = headers + self.column_specific
-        logging.debug("Updated headers: %s", hh)
+        logging.debug("Updated headers: %s", hh)        
         return hh
 
     def filter_by_date(self, df, date_column, start_date, end_date):

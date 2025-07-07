@@ -193,14 +193,40 @@ class LinePlot(BasePlot):
             
             prefix = self.config.ci[i]
 
-            self.ax.fill_between(
-                x_values,
-                data[f"{prefix}_bcl"] * scale,
-                data[f"{prefix}_bcu"] * scale,
-                color=color,
-                alpha=0.2,  # Transparency of the shaded region
-                label=f"{ylabel} CI"
-            )
+            if hasattr(self.config, "ci_fill_between"):
+
+                if self.config.ci_fill_between:
+
+                    self.ax.fill_between(
+                        x_values,
+                        data[f"{prefix}_bcl"] * scale,
+                        data[f"{prefix}_bcu"] * scale,
+                        color=color,
+                        alpha=0.2,  # Transparency of the shaded region
+                        label=f"{ylabel} CI"
+                    )
+            else:
+                
+                lower = data[f"{prefix}_bcl"] * scale
+                upper = data[f"{prefix}_bcu"] * scale
+                central = y_values * scale
+            
+                # Ensure error bars are non-negative
+                yerr_lower = (central - lower).clip(lower=0)
+                yerr_upper = (upper - central).clip(lower=0)
+                yerr = [yerr_lower, yerr_upper]
+            
+                self.ax.errorbar(
+                    x_values,
+                    central,
+                    yerr=yerr,
+                    fmt='none',
+                    ecolor=color,
+                    elinewidth=1.5,
+                    capsize=3,
+                    alpha=0.6,
+                    label=f"{ylabel} CI"
+                )
 
         if hasattr(self.config, "significance"):
             if self.config.significance:

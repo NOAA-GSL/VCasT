@@ -2,7 +2,7 @@
 AVAILABLE_VARS = ["rmse", "bias", "quantiles", "mae", "gss", "fbias", "pod", "far", "sr", "csi", "stdev", "corr", "fss"]
 
 AVAILABLE_LINE_TYPES = [
-            "fho", "ctc", "cts", "cnt", "mctc", "mpr", "sl1l2", "sal1l2", 
+            "mode_cts", "fho", "ctc", "cts", "cnt", "mctc", "mpr", "sl1l2", "sal1l2", 
             "vl1l2", "vcnt", "pct", "pstd", "pjc", "prc", "eclv", "sl1l2", 
             "sal1l2", "vl1l2", "val1l2", "vcnt", "mpr", "seeps_mpr", "seeps", "ecnt", "nbrcnt"
         ]
@@ -62,6 +62,14 @@ STATISTIC_TO_FIELDS2 = {
 }
 
 LINE_TYPE_COLUMNS = {
+    "mode_cts": [
+        "version", "model", "n_valid", "grid_res", "desc", "fcst_lead", "fcst_valid",
+        "fcst_accum", "obs_lead", "obs_valid", "obs_accum", "fcst_rad", "fcst_thr",
+        "obs_rad", "obs_thr", "fcst_var", "fcst_units", "fcst_lev", "obs_var",
+        "obs_units", "obs_lev", "obtype", "field", "total", "fy_oy", "fy_on",
+        "fn_oy", "fn_on", "baser", "fmean", "acc", "fbias", "pody", "podn",
+        "pofd", "far", "csi", "gss", "hk", "hss", "odds"
+    ],
     "fho": ["total", "f_rate", "h_rate", "o_rate"],
     "ctc": ["total", "fy_oy", "fy_on", "fn_oy", "fn_on", "ec_value"],
     "cts": ["total", "baser", "baser_ncl", "baser_ncu", "baser_bcl", "baser_bcu",

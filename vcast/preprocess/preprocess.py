@@ -2,16 +2,19 @@ from datetime import datetime, timedelta
 import numpy as np
 import pygrib
 import xarray as xr
-import re
 import os
-from vcast.stat import AVAILABLE_VARS 
+from pathlib import Path
+import pandas as pd
+from vcast.metstat import AVAILABLE_VARS 
+from vcast.preprocess import FileChecker
 
 class Preprocessor:
     """Handles input/output file preparation and date formatting."""
 
+    _TABLE_PATH = Path(__file__).resolve().parents[2] / 'util' / 'lookup_table-v2.txt'
+
     @staticmethod
     def read_input_data(input_file, var_name, type_of_level, level, date, lead_time):
-        from vcast.io import FileChecker
         """
         Reads forecast or observation data from a given input file.
 
@@ -54,7 +57,101 @@ class Preprocessor:
         
         data = np.squeeze(data)
         return data, lat_grid, lon_grid, stype
-    
+
+    @classmethod
+    def get_lookup_table_path(cls, config, check: bool = True) -> Path:
+        """
+        Return the path to the lookup table file, optionally verifying its existence.
+
+        Args:
+            check: If True, ensure the file exists and is a regular file.
+
+        Raises:
+            LookupTableNotFound: if file is missing when check is True.
+        """
+
+        path = cls._TABLE_PATH
+        if hasattr(config, 'vtable'):
+            if os.path.exists(config.vtable):
+                path = config.vtable
+            else:
+                print("WARNING: Vtable file does not exist. Using default...")
+        
+        if check and not os.path.isfile(path):
+            raise Exception(f"Vtable not found at {path}")
+        return path
+
+    @staticmethod
+    def get_meta_data(
+        tag: str,
+        df: pd.DataFrame,
+        variable: str,        
+        model: str,
+    ) -> tuple[str, str, str]:
+        """
+        Extract `model_variable`, `level`, and `level_name` for a given forecast or reference.
+
+        Args:
+            df: DataFrame loaded from the lookup table.
+            variable: the `variable` column value.
+            model: the `model` column value.
+
+        Returns:
+            Tuple of (model_variable, level, level_name).
+
+        Raises:
+            LookupTableDataError: if no match or ambiguous matches remain.
+        """
+        subset = df.loc[
+            (df['variable'] == variable) &
+            (df['model'] == model)
+        ]
+
+        if subset.empty:
+            raise Exception(
+                f"No metadata for variable={variable}, model={model}."
+            )
+        
+        if len(subset) > 1:
+            raise Exception(
+                f"{tag}:Ambiguous metadata for variable={variable}, model={model}."
+            )
+
+        return subset['model_variable'].iat[0], subset['level'].iat[0], subset['level_name'].iat[0], subset['units'].iat[0], subset['description'].iat[0]
+
+    @classmethod
+    def process_variables(
+        cls,
+        var,
+        config
+    ) -> dict[str, tuple[str, int, str, str]]:
+        """
+        For both forecast (`fcst`) and reference (`ref`), lookup metadata.
+
+        Expects `config` to provide attributes:
+          - `fcst_var`, `fcst_level`, `fcst_model`
+          - `ref_var`,  `ref_level`,  `ref_model`
+
+        Returns:
+            A dict with keys 'fcst' and 'ref', each mapping to the
+            (model_variable, level, level_name) tuple.
+        """
+        path = cls.get_lookup_table_path(config)
+        df = pd.read_csv(path, sep='\t', index_col=False)
+
+        result = {}
+        for tag in ('fcst', 'ref'):
+            mdl = getattr(config,f"{tag}_model")
+            result[tag] = cls.get_meta_data(tag, df, var, mdl)
+            
+        fcst_units = result['fcst'][3]
+        ref_units = result['ref'][3]
+   
+        if fcst_units != ref_units:
+            raise Exception(f"Unit conversion not implemented: fcst units '{fcst_units}' vs ref units '{ref_units}'")
+
+        return result
+
     @staticmethod
     def validate_config(config, config_type):
         """
@@ -95,19 +192,43 @@ class Preprocessor:
         if config_type == "stat":
             required_attributes = [
                 "start_date", "end_date", "interval_hours",  # "time" is now optional
-                "fcst_file_template", "fcst_var", "fcst_level", "fcst_type_of_level",
-                "ref_file_template", "ref_var", "ref_level", "ref_type_of_level",
+                "fcst_file_template", "vars","fcst_model",
+                "ref_file_template", "ref_model",
                 "output_dir", "output_filename",
                 "stat_type", "stat_name",
                 "interpolation", "target_grid",
                 "processes"
             ]
-            
+           
             # Check that all required attributes exist
             missing = [attr for attr in required_attributes if not hasattr(config, attr)]
             if missing:
                 raise ValueError("Missing required configuration attributes: " + ", ".join(missing))
             
+            if isinstance(config.vars, str):
+                config.vars = [config.vars]
+
+            config.fcst_var = []
+            config.fcst_level = []
+            config.fcst_type_of_level = []
+            config.ref_var = []
+            config.ref_level = []
+            config.ref_type_of_level = []
+            config.var_desc = []
+
+            for var in config.vars:
+                res = Preprocessor.process_variables(var, config)
+    
+                config.fcst_var.append(res['fcst'][0])
+                config.fcst_level.append(res['fcst'][1])
+                config.fcst_type_of_level.append(res['fcst'][2])
+
+                config.var_desc.append(res['fcst'][4])
+    
+                config.ref_var.append(res['ref'][0])
+                config.ref_level.append(res['ref'][1])
+                config.ref_type_of_level.append(res['ref'][2])
+
             # Define the expected date format for main dates
             date_format = "%Y-%m-%d_%H:%M:%S"
             
@@ -152,7 +273,7 @@ class Preprocessor:
             if not isinstance(config.stat_name, list):
                 raise ValueError("stat_name must be a list.")
             for stat in config.stat_name:
-                stat, _, _, _ = Preprocessor.parse_metric_string(stat)
+                stat = stat.split(":")[0]
                 if stat.lower() not in AVAILABLE_VARS:
                     allowed = ", ".join(sorted(AVAILABLE_VARS))
                     raise ValueError(f"Invalid stat in stat_name: '{stat}'. Allowed values: {allowed}")
@@ -235,36 +356,6 @@ class Preprocessor:
             return config
 
     @staticmethod
-    def parse_metric_string(var_string):
-        """
-        Parse a metric specifier of the form:
-            "metric"             → returns (metric, None, None)
-            "metric:thresh"      → returns (metric, float(thresh), None)
-            "metric:thresh:rad"  → returns (metric, float(thresh), int(rad))
-    
-        Raises ValueError if the format isn't recognized.
-        """
-        parts = var_string.split(":")
-        metric = parts[0]
-    
-        # no extra args
-        if len(parts) == 1:
-            return metric, None, None, None
-    
-        # one extra arg  → threshold
-        if len(parts) == 2:
-            return metric, float(parts[1]), None, None
-    
-        # two extra args → threshold and radius
-        if len(parts) == 3:
-            return metric, float(parts[1]), float(parts[2]), None
-        
-        if len(parts) == 4:
-            return metric, float(parts[1]), float(parts[2]), float(parts[3])
-    
-        raise ValueError(f"Invalid metric specifier: '{var_string}'")
-
-    @staticmethod
     def read_grib2(grib2_file, var_name, type_of_level, level):
         """
         Reads a GRIB2 file and extracts the specified variable data along with latitude and longitude arrays.
@@ -287,9 +378,7 @@ class Preprocessor:
         try:
             # Open the GRIB2 file
             grbs = pygrib.open(grib2_file)
-    
-            # Filter the GRIB message based on var_name, type_of_level, and level
-            grb = grbs.select(shortName=var_name, typeOfLevel=type_of_level, level=level)[0]
+            grb = grbs.select(shortName=var_name, typeOfLevel=type_of_level, level=int(level))[0]
     
             # Extract the data, latitude, and longitude
             data = grb.values
@@ -467,22 +556,23 @@ class Preprocessor:
             var_data = ds[var_name]
     
             # Check if the level dimension exists in the dataset
-            if type_of_level and type_of_level in var_data.dims:
-                if level is not None:
-                    if type_of_level in ds:
-                        level_values = ds[type_of_level].values
-                        if level not in level_values:
-                            raise ValueError(f"Level '{level}' not found in dimension '{type_of_level}'. Available levels: {level_values}")
-                        
-                        # Select the specified level
-                        data = var_data.sel({type_of_level: level}).values
+            if type_of_level is not None:
+                if type_of_level in var_data.dims:
+                    if level is not None:
+                        if type_of_level in ds:
+                            level_values = ds[type_of_level].values
+                            if level not in level_values:
+                                raise ValueError(f"Level '{level}' not found in dimension '{type_of_level}'. Available levels: {level_values}")
+                            
+                            # Select the specified level
+                            data = var_data.sel({type_of_level: level}).values
+                        else:
+                            raise ValueError(f"Level dimension '{type_of_level}' not found in dataset.")
                     else:
-                        raise ValueError(f"Level dimension '{type_of_level}' not found in dataset.")
+                        raise ValueError("Level must be specified for non-surface fields.")
                 else:
-                    raise ValueError("Level must be specified for non-surface fields.")
-            else:
-                # Assume surface field (no level dimension)
-                data = var_data.values
+                    # Assume surface field (no level dimension)
+                    data = var_data.values
     
             return data, lats, lons
     

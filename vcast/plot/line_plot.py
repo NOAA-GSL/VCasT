@@ -2,7 +2,44 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import matplotlib.dates as mdates
 from .base_plot import BasePlot
-import numpy as np
+import math
+from matplotlib.colors import to_rgb
+
+def parse_rgb_string(color_str):
+    """
+    Parse a color string into a normalized RGB tuple in the range [0, 1].
+
+    Accepts:
+    - Named colors or hex codes (via matplotlib)
+    - RGB tuples or lists in "(r,g,b)" or "[r, g, b]" format
+      with values in either [0, 1] or [0, 255]
+
+    Returns:
+    - (True, (r, g, b)) if successful
+    - (False, None) if parsing fails
+    """
+    try:
+        # Named colors or hex codes
+        return True, to_rgb(color_str)
+    except ValueError:
+        pass
+
+    try:
+        # Strip brackets or parentheses and split
+        color_str = color_str.strip("()[]")
+        parts = [float(x.strip()) for x in color_str.split(",")]
+        if len(parts) != 3:
+            return False, None
+        
+        # Normalize if any value is >1 (assume it's 0–255 scale)
+        if any(x > 1.0 for x in parts):
+            parts = [min(max(x / 255.0, 0), 1) for x in parts]
+        else:
+            parts = [min(max(x, 0), 1) for x in parts]
+
+        return True, tuple(parts)
+    except Exception:
+        return False, None
 
 class LinePlot(BasePlot):
     def __init__(self, config):
@@ -68,10 +105,13 @@ class LinePlot(BasePlot):
                             raise Exception(f"No data found for fcst_var = {self.config.fcst_var}")
         
                 # Handle unique grouping if applicable
-
-                if self.config.unique is None:
-                    self.__exceute_line(var, data, file, start_dt, end_dt, i)
-
+                unique = False
+                if hasattr(self.config, "unique"):
+                    if self.config.unique:
+                        unique = True 
+                
+                if not unique:
+                        self.__exceute_line(var, data, file, start_dt, end_dt, i)
                 else:
                     for j, column_obj in enumerate(self.config.unique):
                         column_dict = vars(column_obj)
@@ -107,7 +147,7 @@ class LinePlot(BasePlot):
             x_values = mdates.date2num(merged["date"])
         elif "fcst_lead" in data.columns:
             x_values = data["fcst_lead"].astype(int).tolist()
-            if np.mean(x_values) > 10000:
+            if sum(x_values) / len(x_values) > 10000:
                 x_values = [val / 10000 for val in x_values]
         else:
             raise ValueError(f"'date' column not found in the file {file}.")
@@ -124,66 +164,118 @@ class LinePlot(BasePlot):
             self.ax.set_xlim(x_values[self.config.xlim[0]], x_values[self.config.xlim[1]])
 
         ylabel = self.config.labels[i]
+        is_valid, color = parse_rgb_string(self.config.line_color[i])
 
+        if not is_valid:
+            raise Exception(f"{self.config.line_color[i]} is not a valid color.")
+
+        scale = 1
+        if hasattr(self.config, "scale"):
+            if self.config.scale:
+                scale = self.config.scale
+
+        if hasattr(self.config, "hlines"):
+            if self.config.hlines:
+                           
+                for j in self.config.hlines:
+
+                    hline = [j] * len(x_values)
+
+                    self.ax.plot(
+                        x_values,
+                        hline,
+                        color="black",
+                        linestyle="-",
+                        linewidth=0.5
+                    )                    
 
         if hasattr(self.config, "ci"):
-            if self.config.significance:
+            
+            prefix = self.config.ci[i]
 
-                self.ax.fill_between(
+            if hasattr(self.config, "ci_fill_between"):
+
+                if self.config.ci_fill_between:
+
+                    self.ax.fill_between(
+                        x_values,
+                        data[f"{prefix}_bcl"] * scale,
+                        data[f"{prefix}_bcu"] * scale,
+                        color=color,
+                        alpha=0.2,  # Transparency of the shaded region
+                        label=f"{ylabel} CI"
+                    )
+            else:
+                
+                lower = data[f"{prefix}_bcl"] * scale
+                upper = data[f"{prefix}_bcu"] * scale
+                central = y_values * scale
+            
+                # Ensure error bars are non-negative
+                yerr_lower = (central - lower).clip(lower=0)
+                yerr_upper = (upper - central).clip(lower=0)
+                yerr = [yerr_lower, yerr_upper]
+            
+                self.ax.errorbar(
                     x_values,
-                    data["ci_lower"] * self.config.scale,
-                    data["ci_upper"] * self.config.scale,
-                    color=self.config.line_color[i],
-                    alpha=0.2,  # Transparency of the shaded region
+                    central,
+                    yerr=yerr,
+                    fmt='none',
+                    ecolor=color,
+                    elinewidth=1.5,
+                    capsize=3,
+                    alpha=0.6,
                     label=f"{ylabel} CI"
                 )
 
-        signif = False
         if hasattr(self.config, "significance"):
             if self.config.significance:
-                signif = True
-                x_values = np.array(x_values)
-                y_values = np.array(y_values)
-       
-                significant_mask = data["significant"]
-                self.ax.scatter(
-                    x_values[significant_mask],
-                    y_values[significant_mask],
-                    color=self.config.line_color[i],
-                    marker=self.config.line_marker[i],
-                    label=f"{ylabel} (significant)"
-                )
+                if "significant" in data.columns:
+                    signif = True
+                    significant_mask = data["significant"]
+                    
+                    x_values = list(x_values)
+                    y_values = list(y_values)
+                    
+                    y_min = self.ax.get_ylim()[0]
+                    y_margin = (self.ax.get_ylim()[1] - y_min) * 0.02  # 2% margin
+                    y_marker = y_min - y_margin
+                    
+                    # Extract significant x-values using list comprehension
+                    x_sig = [x for x, is_sig in zip(x_values, significant_mask) if is_sig]
+                    
+                    # Plot dot markers at the bottom for significant points
+                    self.ax.scatter(
+                        x_sig,
+                        [y_marker + 2 * y_margin] * len(x_sig),
+                        color=color,
+                        marker="o",
+                        s=20,
+                        label=f"{ylabel} (significant)",
+                        zorder=10
+                    )
 
-                self.ax.plot(
-                    x_values,
-                    y_values,
-                    color=self.config.line_color[i],
-                    linestyle=self.config.line_type[i],
-                    linewidth=self.config.line_width[i],
-                    label=ylabel
-                )
-
-        if not signif:            
-            self.ax.plot(
-                x_values, y_values * self.config.scale,
-                color=self.config.line_color[i],
-                linestyle=self.config.line_type[i],
-                marker=self.config.line_marker[i],
-                linewidth=self.config.line_width[i],
-                label=ylabel
+        self.ax.plot(
+            x_values, y_values * scale,
+            color=color,
+            linestyle=self.config.line_type[i],
+            marker=self.config.line_marker[i],
+            linewidth=self.config.line_width[i],
+            label=ylabel
             )
 
-        # If self.config.average is True, calculate the overall average and add a horizontal line.
-        if getattr(self.config, "average", False):
-            # Compute the average, ignoring NaN values.
-            avg_value = np.nanmean(y_values * self.config.scale)
-            self.ax.axhline(
-                y=avg_value ,
-                color=self.config.line_color[i],
-                linestyle=self.config.line_type[i],
-                linewidth=self.config.line_width[i],
-                label=f"{ylabel} Average ({avg_value:.2f})"
-            )    
+        if hasattr(self.config, "average"):
+            if self.config.average:
+                # Compute the average, ignoring NaN values.
+                scaled_values = [(y * scale) for y in y_values if y is not None and not math.isnan(y)]
+                avg_value = sum(scaled_values) / len(scaled_values) if scaled_values else float("nan")
+                self.ax.axhline(
+                    y=avg_value ,
+                    color=color,
+                    linestyle=self.config.line_type[i],
+                    linewidth=self.config.line_width[i],
+                    label=f"{ylabel} Average ({avg_value:.2f})"
+                )    
 
     def get_x_values(self, data):
         """

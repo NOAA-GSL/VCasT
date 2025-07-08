@@ -1,6 +1,5 @@
 import os
 import csv
-from vcast.stat import AVAILABLE_VARS
 
 class OutputFileHandler:
     """
@@ -8,7 +7,6 @@ class OutputFileHandler:
     """
 
     def __init__(self, config):
-        from vcast.io import Preprocessor
         """
         Initializes the OutputFileHandler and opens the output file.
 
@@ -18,12 +16,11 @@ class OutputFileHandler:
         self.output_file = None
         self.writer = None
 
-        self.config = Preprocessor.validate_config(config,"stat")
+        self.config = config
 
         self.open_output_file()
 
     def open_output_file(self):
-        from vcast.io import Preprocessor
         """
         Opens the output file for writing.
 
@@ -47,34 +44,28 @@ class OutputFileHandler:
         self.writer = csv.writer(self.output_file, delimiter="\t")
 
         # Prepare the header row
-        header = ["date", "fcst_lead"]
+        header = ["date", "fcst_lead", "fcst_var", "level"]
         
         if ens:
             header += ["model"]
 
         for stat in stat_name:
-            stat_lower, p1, p2, p3 = Preprocessor.parse_metric_string(stat.lower())
-            if stat_lower in AVAILABLE_VARS:
-                if stat_lower == "quantiles":
-                    header += ["25p", "50p", "75p", "IQR", "LW", "UW"]
-                else:
-                    ss = ""
-                    if p1 is not None:
-                        ss += f":{p1}"
-                    else:
-                        ss += ":_"
+            stat_lower, p1, p2, p3 = OutputFileHandler.parse_metric_string(stat.lower())
+            if stat_lower == "quantiles":
+                header += ["25p", "50p", "75p", "IQR", "LW", "UW"]
+            else:
+                ss = ""
+                if p1 is not None:
+                    ss += f":{p1}"
 
-                    if p2 is not None:
-                        ss += f":{p2}"
-                    else:
-                        ss += ":_"
-                    
-                    if p3 is not None:
-                        ss += f":{p3}"
-                    else:
-                        ss += ":_"
+                if p2 is not None:
+                    ss += f":{p2}"
+                
+                if p3 is not None:
+                    ss += f":{p3}"
 
-                    header.append(stat_lower + ss)
+                fstat = f"{stat_lower}{ss}"
+                header.append(fstat)
 
         self.write_to_output_file(header)  # Write header row
 
@@ -98,3 +89,33 @@ class OutputFileHandler:
             self.output_file.close()
             self.output_file = None
             self.writer = None
+    
+    @staticmethod
+    def parse_metric_string(var_string):
+        """
+        Parse a metric specifier of the form:
+            "metric"             → returns (metric, None, None)
+            "metric:thresh"      → returns (metric, float(thresh), None)
+            "metric:thresh:rad"  → returns (metric, float(thresh), int(rad))
+    
+        Raises ValueError if the format isn't recognized.
+        """
+        parts = var_string.split(":")
+        metric = parts[0]
+    
+        # no extra args
+        if len(parts) == 1:
+            return metric, None, None, None
+    
+        # one extra arg  → threshold
+        if len(parts) == 2:
+            return metric, float(parts[1]), None, None
+    
+        # two extra args → threshold and radius
+        if len(parts) == 3:
+            return metric, float(parts[1]), float(parts[2]), None
+        
+        if len(parts) == 4:
+            return metric, float(parts[1]), float(parts[2]), float(parts[3])
+    
+        raise ValueError(f"Invalid metric specifier: '{var_string}'")

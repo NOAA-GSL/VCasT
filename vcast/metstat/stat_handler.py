@@ -1,9 +1,9 @@
 import pandas as pd
 import glob
-import vcast.stat.constants as cn
-from vcast.stat import AVAILABLE_LINE_TYPES
-import numpy as np
+import vcast.metstat.constants as cn
+from vcast.metstat import AVAILABLE_LINE_TYPES
 import logging
+from collections import Counter
 
 class ReadStat:
     def __init__(self, config):
@@ -65,13 +65,15 @@ class ReadStat:
             df = self.filter_by_string(df, config.string_filters)
             logging.info("DataFrame shape after applying string filters: %s", df.shape)
 
-        if config.thresholds:  # Check if self.thresholds is not empty
-            df = self.filter_by_threshold(df, config.thresholds)
-            logging.info("DataFrame shape after applying threshold filters: %s", df.shape)
+        if hasattr(config, 'thresholds'):
+            if config.thresholds:  # Check if self.thresholds is not empty
+                df = self.filter_by_threshold(df, config.thresholds)
+                logging.info("DataFrame shape after applying threshold filters: %s", df.shape)
 
-        if config.columns_to_keep:  # Check if self.columns_to_keep is not empty
-            df = self.filter_by_columns(df, config.columns_to_keep)
-            logging.info("DataFrame shape after filtering by columns: %s", df.shape)
+        if hasattr(config, 'columns_to_keep'):
+            if config.columns_to_keep:  # Check if self.columns_to_keep is not empty
+                df = self.filter_by_columns(df, config.columns_to_keep)
+                logging.info("DataFrame shape after filtering by columns: %s", df.shape)
 
         # Call only if reformat_file is True
         if config.reformat_file:
@@ -85,7 +87,7 @@ class ReadStat:
         if hasattr(self, 'column_specific'):
             if "all_thresh" in config.stat_vars:
                 add_columns = [var for var in config.stat_vars if var != "all_thresh"]
-                add_columns = np.unique(self.column_specific + add_columns)
+                add_columns = sorted(set(self.column_specific + add_columns))
                 logging.debug("Unique stat vars after combining column_specific: %s", add_columns)
 
         for i in add_columns:
@@ -112,27 +114,13 @@ class ReadStat:
         if config.output_file:
             logging.info("Saving output file to %s.", config.output_plot_file)
             self.save_dataframe(df, config.output_plot_file)
-    
-        if config.aggregate:
-            self.run_aggregation(df, add_columns)
 
+        svars = config.stat_vars
+        
+        if self.config.line_type.lower() == "pct" and "all_thresh" in config.stat_vars:
+            svars = self.column_specific
 
-    def run_aggregation(self, df, add_columns = None):
-            
-            if not isinstance(df, pd.DataFrame):
-                df = pd.read_csv(df, sep="\t")
-            
-            logging.info("DataFrame shape after aggregation: %s", df.shape)
-
-            df = self.aggregation(df, self.config.group_by)
-
-            if add_columns is not None:
-                if self.config.line_type.lower() == "ecnt" and "ratio" in add_columns:
-                    df['ratio'] = df['spread_plus_oerr'] / df['rmse']
-                    logging.debug("Calculated 'ratio' as spread_plus_oerr / rmse.")
-
-            logging.info("Saving aggregated file to %s.", self.config.output_agg_file)
-            self.save_dataframe(df, self.config.output_agg_file)
+        return df, add_columns, svars
 
     def all_columns(self, line_type, line_type_columns=cn.LINE_TYPE_COLUMNS):
         # Get the additional columns based on line type, or an empty list if not found
@@ -157,21 +145,30 @@ class ReadStat:
             next(file)  # Skip the first line (header row)
             for line in file:
                 row_data = line.split()  # Split the line into columns
-                # Check if the line contains the specific line type
-                if row_data[headers.index("line_type")].lower() == line_type.lower():
-                    if line_type.lower() in ['pct', 'pstd']:
-                        fheaders = self.update_headers(headers, row_data, line_type.lower())
-                        logging.debug("Updated headers for %s: %s", line_type, fheaders)
-                    if len(row_data) != len(fheaders):
-                        headers = self.all_columns(line_type, cn.LINE_TYPE_COLUMNS_OLD)
-                        fheaders = headers
-                        logging.debug("Re-adjusted headers using old columns for file: %s", file_path)
+                if line_type.lower() == "mode_cts":
+                    fheaders = cn.LINE_TYPE_COLUMNS["mode_cts"]
                     if len(row_data) == len(fheaders):
                         row_dict = dict(zip(fheaders, row_data[:len(fheaders)]))
                         matching_rows.append(row_dict)
                     else:
                         logging.warning("Skipping line in %s due to mismatched column count.", file_path)
-        df = pd.DataFrame(matching_rows, columns=fheaders)
+                else:
+                    # Check if the line contains the specific line type
+                    if row_data[headers.index("line_type")].lower() == line_type.lower():
+                        if line_type.lower() in ['pct', 'pstd']:
+                            fheaders = self.update_headers(headers, row_data, line_type.lower())
+                            logging.debug("Updated headers for %s: %s", line_type, fheaders)
+                        if len(row_data) != len(fheaders):
+                            headers = self.all_columns(line_type, cn.LINE_TYPE_COLUMNS_OLD)
+                            fheaders = headers
+                            logging.debug("Re-adjusted headers using old columns for file: %s", file_path)
+                        if len(row_data) == len(fheaders):
+                            row_dict = dict(zip(fheaders, row_data[:len(fheaders)]))
+                            matching_rows.append(row_dict)
+                        else:
+                            logging.warning("Skipping line in %s due to mismatched column count.", file_path)
+
+        df = pd.DataFrame(matching_rows, columns=fheaders)        
         logging.info("Processed file %s; resulting DataFrame shape: %s", file_path, df.shape)
         return df
 
@@ -186,7 +183,7 @@ class ReadStat:
         elif line_type == 'pstd':
             self.column_specific = [f"thresh_{i}" for i in range(1, number_of_thresholds + 1)]
             hh = headers + self.column_specific
-        logging.debug("Updated headers: %s", hh)
+        logging.debug("Updated headers: %s", hh)        
         return hh
 
     def filter_by_date(self, df, date_column, start_date, end_date):
@@ -302,37 +299,6 @@ class ReadStat:
         except Exception as e:
             logging.exception("Error in filter_by_columns:")
             raise RuntimeError(f"Error in `filter_by_columns`: {str(e)}")
-
-    def aggregation(self, df: pd.DataFrame, group_by_columns: list[str]) -> pd.DataFrame:
-        """
-        Aggregates the given DataFrame by the specified group_by_columns while keeping 
-        the 'date' column if all values in the group are the same, and adds a 'total' 
-        column giving the number of rows in each group.
-    
-        Parameters:
-          - df (pd.DataFrame): Input DataFrame containing the data.
-          - group_by_columns (list[str]): List of column names to group by.
-    
-        Returns:
-          - pd.DataFrame: Aggregated DataFrame, with one row per group, numeric columns
-                          averaged and a 'total' count.
-        """
-        logging.info("Aggregating DataFrame using group_by columns: %s", group_by_columns)
-    
-        # 1) Mean‑aggregate all numeric columns
-        agg_funcs  = {col: "mean" for col in df.select_dtypes(include="number").columns}
-        grouped    = df.groupby(group_by_columns, as_index=False)
-        aggregated = grouped.agg(agg_funcs)
-    
-        # 2) Compute the group sizes via size().reset_index(), then rename the last column to 'total'
-        counts = df.groupby(group_by_columns).size().reset_index()
-        counts.columns = list(group_by_columns) + ["total"]
-    
-        # 3) Merge the counts back into the aggregated DataFrame
-        result = pd.merge(aggregated, counts, on=group_by_columns, how="left")
-    
-        logging.info("Aggregation complete; resulting shape: %s", result.shape)
-        return result
     
     def save_dataframe(self, df, output_file):
         """

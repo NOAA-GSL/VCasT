@@ -1,5 +1,5 @@
 import yaml
-from typing import Any, Dict, List, Union
+from typing import Any, Dict
 
 class ConfigLoader:
     """Loads and parses a YAML configuration file into structured objects, preserving dictionaries for lists."""

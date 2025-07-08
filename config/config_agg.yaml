@@ -17,6 +17,12 @@ input_file: "/path/to/inputfile.data"       # Path to the processed input data f
 group_by: ["model", "fcst_lead"]            # List of columns used for aggregation.
                                             # The order determines how the data is grouped.
 
+ci: true  # Add confidence intervals
+
+stats:
+  - 'rmse'
+  - 'bias'
+
 # ------------------------
 # Output Data File
 # ------------------------

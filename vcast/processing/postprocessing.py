@@ -55,7 +55,7 @@ class StatiscalSignificance:
         df_model_a: pd.DataFrame,
         df_model_b: pd.DataFrame,
         metric: Literal["rmse", "bias", "fss"] = "rmse",
-        n_iterations: int = 10000,
+        n_iterations: int = 1000,
         ci_percentile: float = 95.0
     ) -> pd.DataFrame:
         """
@@ -83,8 +83,8 @@ class StatiscalSignificance:
                 "fcst_lead": lead,
                 "observed_diff": obs_diff,
                 "p_value": p_val,
-                "ci_lower": ci_low,
-                "ci_upper": ci_high,
+                "ci_bcl": ci_low,
+                "ci_bcu": ci_high,
                 "better_model": better_model,
                 "significant": significant
             })

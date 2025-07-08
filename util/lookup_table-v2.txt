@@ -1,0 +1,44 @@
+variable	model	model_variable	level_name	units	level	description
+DP2M	HRRR	2d	heightAboveGround	K	2	Dew Point at 2m
+T2M	HRRR	2t	heightAboveGround	K	2	Temperature at 2m
+REFC	HRRR	refc	atmosphere	dBZ	0	Reflectivity
+U1000	HRRR	u	isobaricInhPa	m/s	1000	U-component wind at 1000 hPa
+U950	HRRR	u	isobaricInhPa	m/s	950	U-component wind at 950 hPa
+U925	HRRR	u	isobaricInhPa	m/s	925	U-component wind at 925 hPa
+U900	HRRR	u	isobaricInhPa	m/s	900	U-component wind at 900 hPa
+U850	HRRR	u	isobaricInhPa	m/s	850	U-component wind at 850 hPa
+U800	HRRR	u	isobaricInhPa	m/s	800	U-component wind at 800 hPa
+U750	HRRR	u	isobaricInhPa	m/s	750	U-component wind at 750 hPa
+U700	HRRR	u	isobaricInhPa	m/s	700	U-component wind at 700 hPa
+U500	HRRR	u	isobaricInhPa	m/s	500	U-component wind at 500 hPa
+U250	HRRR	u	isobaricInhPa	m/s	250	U-component wind at 250 hPa
+V1000	HRRR	v	isobaricInhPa	m/s	1000	V-component wind at 1000 hPa
+V950	HRRR	v	isobaricInhPa	m/s	950	V-component wind at 950 hPa
+V925	HRRR	v	isobaricInhPa	m/s	925	V-component wind at 925 hPa
+V900	HRRR	v	isobaricInhPa	m/s	900	V-component wind at 900 hPa
+V850	HRRR	v	isobaricInhPa	m/s	850	V-component wind at 850 hPa
+V800	HRRR	v	isobaricInhPa	m/s	800	V-component wind at 800 hPa
+V750	HRRR	v	isobaricInhPa	m/s	750	V-component wind at 750 hPa
+V700	HRRR	v	isobaricInhPa	m/s	700	V-component wind at 700 hPa
+V500	HRRR	v	isobaricInhPa	m/s	500	V-component wind at 500 hPa
+V250	HRRR	v	isobaricInhPa	m/s	250	V-component wind at 250 hPa
+SPFH1000	HRRR	q	isobaricInhPa	m/s	1000	Specific Humidity at 1000 hPa
+SPFH950	HRRR	q	isobaricInhPa	m/s	950	Specific Humidity at 950 hPa
+SPFH925	HRRR	q	isobaricInhPa	m/s	925	Specific Humidity at 925 hPa
+SPFH900	HRRR	q	isobaricInhPa	m/s	900	Specific Humidity at 900 hPa
+SPFH850	HRRR	q	isobaricInhPa	m/s	850	Specific Humidity at 850 hPa
+SPFH800	HRRR	q	isobaricInhPa	m/s	800	Specific Humidity at 800 hPa
+SPFH750	HRRR	q	isobaricInhPa	m/s	750	Specific Humidity at 750 hPa
+SPFH700	HRRR	q	isobaricInhPa	m/s	700	Specific Humidity at 700 hPa
+SPFH500	HRRR	q	isobaricInhPa	m/s	500	Specific Humidity at 500 hPa
+SPFH250	HRRR	q	isobaricInhPa	m/s	250	Specific Humidity at 250 hPa
+T2M	resHRRR	T2M	-	K	-	Temperature at 2m
+SPFH	resHRRR	SPFH	-	kg/kg	-	Specific Humidity
+REFC	resHRRR	REFC	-	dBZ	-	Reflectivity
+U	resHRRR	UGRD	level	m/s	-	U-component wind
+V	resHRRR	VGRD	level	m/s	-	V-component wind
+T2M	graphHRRR	T2M	-	K	-	Temperature at 2m
+SPFH	graphHRRR	SPFH	-	kg/kg	-	Specific Humidity
+REFC	graphHRRR	REFC	-	dBZ	-	Reflectivity
+U	graphHRRR	UGRD	level	m/s	-	U-component wind
+V	graphHRRR	VGRD	level	m/s	-	V-component wind

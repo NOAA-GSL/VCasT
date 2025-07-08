@@ -1,4 +1,4 @@
-from vcast.io import FileChecker
+from vcast.preprocess import FileChecker
 import numpy as np
 import xarray as xr
 from scipy.interpolate import griddata

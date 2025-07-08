@@ -4,7 +4,8 @@
 
 VCasT (Verification and Forecast Evaluation Tool) is a library designed for weather model verification.
 
+📚 **Documentation:** [https://vcast.readthedocs.io](https://vcast.readthedocs.io)
+
 ## License
 
-The Apache license will be in effect unless superseded by an existing license in specific files - see the [LICENSE](LICENSE) file for details.
-
+The Apache license will be in effect unless superseded by an existing license in specific files – see the [LICENSE](LICENSE) file for details.

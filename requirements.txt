@@ -3,7 +3,6 @@ pygrib
 netCDF4
 pyyaml
 scipy
-argparse
 pandas
 matplotlib
 pytest

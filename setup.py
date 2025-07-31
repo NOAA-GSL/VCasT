@@ -61,7 +61,6 @@ setup(
     url="https://github.com/NOAA-GSL/VCasT",
     install_requires=[
         "pyyaml<=6.0.1",
-        "argparse",  # standard lib in Python 3.2+, included for legacy consistency
         "colorama<=0.4.6",
     ],
     extras_require=extras_require,

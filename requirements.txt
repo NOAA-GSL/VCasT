@@ -1,9 +1,4 @@
-numpy
-pygrib
-netCDF4
-pyyaml
-scipy
-argparse
-pandas
-matplotlib
-pytest
+# Dependencies are declared in pyproject.toml.
+# Install with the extras you need, e.g.:
+#   pip install ".[all,dev]"
+#   pip install ".[lite]"

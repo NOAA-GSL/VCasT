@@ -12,5 +12,6 @@ from .base_plot import BasePlot
 from .line_plot import LinePlot
 from .reliability import Reliability
 from .performance_diagram import PerformanceDiagram
+from .roc import Roc
 
-__all__ = ["BasePlot","LinePlot", "Reliability", "PerformanceDiagram"]
+__all__ = ["BasePlot","LinePlot", "Reliability", "PerformanceDiagram", "Roc"]

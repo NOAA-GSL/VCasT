@@ -1,0 +1,78 @@
+# ====================================================
+# ROC Diagram Configuration File
+# ====================================================
+# Draws a ROC (Relative Operating Characteristic) diagram from an aggregated
+# PCT file -- the same aggregated file used by the reliability plot.  The ROC
+# curve is derived from the per-bin obs-yes / obs-no counts (oy_i / on_i):
+#
+#     PODY(k) = sum(oy_i for i >= k) / sum(oy)
+#     POFD(k) = sum(on_i for i >= k) / sum(on)
+#
+# Because counts are additive across cases, aggregate the PCT line type (sum
+# the counts) and let this plot re-derive the rates -- do NOT aggregate PRC
+# (rates) directly, which would be statistically incorrect.
+
+# ------------------------
+# Plot Settings
+# ------------------------
+plot_type: roc                     # Draw a ROC diagram
+
+# ------------------------
+# Data Options
+# ------------------------
+unique:                            # Optional unique grouping (leave empty if not used)
+fcst_var: REFC_ENS_FREQ_ge20.0     # Forecast-probability variable to filter on
+show_auc: true                     # Append "(AUC=...)" to each legend label
+
+# ------------------------
+# Variables to Plot (one ROC curve per entry; key = fcst_lead, value = agg file)
+# ------------------------
+vars:
+  - 10000: "./agg_refc20.data"     # F01
+  - 60000: "./agg_refc20.data"     # F06
+  - 120000: "./agg_refc20.data"    # F12
+  - 240000: "./agg_refc20.data"    # F24
+
+# ------------------------
+# General Plot Aesthetics
+# ------------------------
+plot_title: "ROC - REFC >= 20 dBZ"
+legend_title: "Lead Time"
+
+labels:
+  - "F01"
+  - "F06"
+  - "F12"
+  - "F24"
+
+line_color:
+  - "blue"
+  - "green"
+  - "orange"
+  - "red"
+
+line_marker:
+  - "o"
+  - "s"
+  - "^"
+  - "D"
+
+line_type:
+  - "-"
+  - "-"
+  - "-"
+  - "-"
+
+line_width:
+  - 1.0
+  - 1.0
+  - 1.0
+  - 1.0
+
+output_filename: roc_REFC20.png
+
+# ------------------------
+# Options
+# ------------------------
+grid: true                         # Grid lines on the unit square
+legend: true                       # Set to false to hide the legend

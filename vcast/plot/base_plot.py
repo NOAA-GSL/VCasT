@@ -16,10 +16,9 @@ class BasePlot:
         Save the plot to a file.
         """
 
-        legend = False
-        if hasattr(self.config, "legend_style"):
-            if self.config.legend_style:
-                legend = True
+        # Draw a legend unless the config disables it with `legend: false`.
+        if getattr(self.config, "legend", True):
+            if getattr(self.config, "legend_style", False):
                 self.ax.legend(
                     title=self.config.legend_title,
                     fontsize='medium',
@@ -27,9 +26,8 @@ class BasePlot:
                     loc='center left',
                     bbox_to_anchor=(1, 0.5)
                 )
-        
-        if not legend:
-            self.ax.legend(title=self.config.legend_title, fontsize='medium', shadow=True)
+            else:
+                self.ax.legend(title=self.config.legend_title, fontsize='medium', shadow=True)
 
 
         plt.savefig(self.config.output_filename, bbox_inches='tight')

@@ -71,8 +71,11 @@ class Roc(BasePlot):
         # Points run from (1,1) at k=0 to (0,0) at k=n and are monotonically
         # non-increasing in both POFD and PODY, so integrate along the curve
         # (reversed to ascending POFD). Re-sorting would scramble PODY at tied
-        # POFD values and corrupt the area.
-        auc = float(np.trapz(pody[::-1], pofd[::-1]))
+        # POFD values and corrupt the area. The trapezoid is computed directly
+        # to stay compatible across numpy versions (np.trapz was removed in
+        # numpy 2.x in favour of np.trapezoid).
+        x, y = pofd[::-1], pody[::-1]
+        auc = float(np.sum((x[1:] - x[:-1]) * (y[1:] + y[:-1]) / 2.0))
         return pofd, pody, auc
 
     def add_lines(self):

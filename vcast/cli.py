@@ -71,8 +71,8 @@ def handle_conversion(config):
 
             agg = Aggregation(config, df, svars)
             df = agg.run()
-            print("DataFrame shape after aggregation: %s", df.shape)
-            print("Saving aggregated file to %s.", config.output_agg_file)
+            print(f"DataFrame shape after aggregation: {df.shape}")
+            print(f"Saving aggregated file to {config.output_agg_file}.")
             rs.save_dataframe(df, config.output_agg_file)
 
     sys.exit(0)

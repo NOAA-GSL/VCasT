@@ -76,7 +76,9 @@ class StatiscalSignificance:
                 values_a, values_b, n_iterations=n_iterations, ci_percentile=ci_percentile
             )
 
-            better_model = "Model A" if obs_diff < 0 else "Model B"
+            # observed_diff = mean(B) - mean(A); a lower metric value (e.g. rmse,
+            # bias) is assumed better, so a negative diff means B is better.
+            better_model = "Model B" if obs_diff < 0 else "Model A"
             significant = p_val < 0.05
 
             results.append({

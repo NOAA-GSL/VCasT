@@ -1,0 +1,91 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "vcast"
+version = "1.0.0"
+description = "VCasT: Verification and Forecast Evaluation Tool"
+readme = "README.md"
+license = "Apache-2.0"
+license-files = ["LICENSE"]
+requires-python = ">=3.10"
+authors = [
+    { name = "Vanderlei Vargas Jr.", email = "vanderlei.vargas@noaa.gov" },
+]
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Operating System :: OS Independent",
+]
+dependencies = [
+    "pyyaml>=6.0,<7",
+    "colorama>=0.4.6,<0.5",
+]
+
+[project.urls]
+Homepage = "https://github.com/NOAA-GSL/VCasT"
+Documentation = "https://vcast.readthedocs.io"
+
+[project.scripts]
+vcast = "vcast.cli:main"
+
+[tool.setuptools.packages.find]
+include = ["vcast", "vcast.*"]
+
+[project.optional-dependencies]
+io = []
+plot = [
+    "matplotlib>=3.8,<4",
+    "pandas>=2.2,<3",
+]
+stat = [
+    "scipy>=1.11,<2",
+    "numpy>=1.26,<3",
+]
+metstat = [
+    "pandas>=2.2,<3",
+]
+agg = [
+    "scipy>=1.11,<2",
+    "pandas>=2.2,<3",
+    "numpy>=1.26,<3",
+]
+preprocess = [
+    "xarray>=2024.4,<2025",
+    "netCDF4>=1.6,<2",
+    "zarr>=2.17,<3",
+    "pygrib>=2.1,<3",
+    "pandas>=2.2,<3",
+]
+processing = [
+    "xarray>=2024.4,<2025",
+    "netCDF4>=1.6,<2",
+    "zarr>=2.17,<3",
+    "pygrib>=2.1,<3",
+    "scipy>=1.11,<2",
+]
+# "lite" == io + plot + metstat + agg
+lite = [
+    "matplotlib>=3.8,<4",
+    "pandas>=2.2,<3",
+    "scipy>=1.11,<2",
+    "numpy>=1.26,<3",
+]
+# "all" == union of every extra above, deduplicated
+all = [
+    "matplotlib>=3.8,<4",
+    "pandas>=2.2,<3",
+    "scipy>=1.11,<2",
+    "numpy>=1.26,<3",
+    "xarray>=2024.4,<2025",
+    "netCDF4>=1.6,<2",
+    "zarr>=2.17,<3",
+    "pygrib>=2.1,<3",
+]
+dev = [
+    "pytest>=7",
+    "Pillow>=10",
+]

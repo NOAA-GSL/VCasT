@@ -36,17 +36,10 @@ class Roc(BasePlot):
         if getattr(self.config, "grid", False):
             self.ax.grid(True, linestyle="--", alpha=0.6)
 
-    @staticmethod
-    def _bin_columns(columns, prefix):
-        """Return the ``<prefix>N`` columns in ascending numeric bin order."""
-        cols = [c for c in columns
-                if c.startswith(prefix) and c[len(prefix):].isdigit()]
-        return sorted(cols, key=lambda c: int(c[len(prefix):]))
-
     def _roc_points(self, row):
         """Compute (POFD, PODY, AUC) for a single aggregated PCT row."""
-        oy_cols = self._bin_columns(row.index, "oy_")
-        on_cols = self._bin_columns(row.index, "on_")
+        oy_cols = self.bin_columns(row.index, "oy_")
+        on_cols = self.bin_columns(row.index, "on_")
         if not oy_cols or not on_cols:
             raise Exception(
                 "No 'oy_'/'on_' columns found -- ROC needs an aggregated PCT file."

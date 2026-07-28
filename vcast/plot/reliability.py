@@ -73,16 +73,31 @@ class Reliability(BasePlot):
                         else:
                             raise IndexError(f"Index {i} out of bounds for unique values in {self.config.unique}.")
 
-                tcolumns = [f"thresh_{i}" for i in range(2, 12)]
-                probs = data[tcolumns].iloc[0].tolist()
+                # Discover how many probability bins this file actually has
+                # (oy_/on_/thresh_ columns are generated dynamically upstream,
+                # so the bin count varies with the number of thresholds used).
+                row = data.iloc[0]
+                oy_cols = self.bin_columns(row.index, "oy_")
+                on_cols = self.bin_columns(row.index, "on_")
+                thresh_cols = self.bin_columns(row.index, "thresh_")
 
-                ycolumns = [f"oy_{i}" for i in range(2, 12)]
-                oy = np.array(data[ycolumns].iloc[0].tolist())
+                bin_idx = sorted(
+                    set(int(c[len("oy_"):]) for c in oy_cols)
+                    & set(int(c[len("on_"):]) for c in on_cols)
+                    & set(int(c[len("thresh_"):]) for c in thresh_cols)
+                )
+                if not bin_idx:
+                    raise Exception(
+                        "No matching 'thresh_'/'oy_'/'on_' columns found -- "
+                        "reliability needs an aggregated PCT file."
+                    )
 
-                ncolumns = [f"on_{i}" for i in range(2, 12)]
-                on = np.array(data[ncolumns].iloc[0].tolist())
+                probs = [row[f"thresh_{k}"] for k in bin_idx]
+                oy = np.array([row[f"oy_{k}"] for k in bin_idx], dtype=float)
+                on = np.array([row[f"on_{k}"] for k in bin_idx], dtype=float)
 
-                ob_freq = oy / (oy + on)
+                with np.errstate(invalid="ignore", divide="ignore"):
+                    ob_freq = oy / (oy + on)
 
                 self.ax.set_xlim([0,1])
                 

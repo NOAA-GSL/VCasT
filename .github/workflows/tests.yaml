@@ -26,10 +26,29 @@ jobs:
         with:
           python-version: ${{ matrix.python-version }}
 
+      - name: Install system dependencies (eccodes, for pygrib)
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libeccodes0 libeccodes-dev
+
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
           pip install ".[all,dev]"
+
+      - name: Verify optional extras actually imported
+        run: |
+          python -c "
+          import vcast.preprocess as p, vcast.processing as pr
+          missing = [n for n, v in [('Preprocessor', p.Preprocessor), ('FileChecker', p.FileChecker),
+                                     ('process_in_parallel', pr.process_in_parallel),
+                                     ('interpolate_to_target_grid', pr.interpolate_to_target_grid),
+                                     ('StatiscalSignificance', pr.StatiscalSignificance)] if v is None]
+          if missing:
+              raise SystemExit(f'These \"processing\" extras failed to import even after pip install \".[all]\": {missing}. '
+                                'Check the warnings logged above for the underlying ImportError.')
+          print('All processing/preprocess extras imported successfully.')
+          "
 
       - name: Run workflow tests
         run: |

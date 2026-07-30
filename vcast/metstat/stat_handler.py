@@ -87,7 +87,8 @@ class ReadStat:
         if hasattr(self, 'column_specific'):
             if "all_thresh" in config.stat_vars:
                 add_columns = [var for var in config.stat_vars if var != "all_thresh"]
-                add_columns = sorted(set(self.column_specific + add_columns))
+                add_columns = sorted(set(self.column_specific + add_columns),
+                                      key=self._bin_column_sort_key)
                 logging.debug("Unique stat vars after combining column_specific: %s", add_columns)
 
         for i in add_columns:
@@ -168,7 +169,17 @@ class ReadStat:
                         else:
                             logging.warning("Skipping line in %s due to mismatched column count.", file_path)
 
-        df = pd.DataFrame(matching_rows, columns=fheaders)        
+        # For pct/pstd, different rows in this file (or earlier files in the
+        # same run) can carry different numbers of probability thresholds.
+        # `fheaders` at this point only reflects whichever row happened to be
+        # parsed last, so building the DataFrame with it would silently drop
+        # any higher-numbered bins seen in other rows. Use the accumulated
+        # union (self.column_specific, built up across every row processed so
+        # far) instead, so every bin survives regardless of processing order.
+        if line_type.lower() in ['pct', 'pstd'] and getattr(self, 'column_specific', None):
+            fheaders = self.all_columns(line_type) + self.column_specific
+
+        df = pd.DataFrame(matching_rows, columns=fheaders)
         logging.info("Processed file %s; resulting DataFrame shape: %s", file_path, df.shape)
         return df
 
@@ -176,15 +187,40 @@ class ReadStat:
         number_of_thresholds = int(row_data[len(cn.FULL_HEADER) + 1])
         logging.debug("Number of thresholds found: %d", number_of_thresholds)
         hh = []
+        row_specific = []
         if line_type == 'pct':
-            self.column_specific = [item for i in range(1, number_of_thresholds) 
-                                    for item in (f"thresh_{i}", f"oy_{i}", f"on_{i}")] + ["thresh_n"]
-            hh = headers + self.column_specific
+            row_specific = [item for i in range(1, number_of_thresholds)
+                            for item in (f"thresh_{i}", f"oy_{i}", f"on_{i}")] + ["thresh_n"]
+            hh = headers + row_specific
         elif line_type == 'pstd':
-            self.column_specific = [f"thresh_{i}" for i in range(1, number_of_thresholds + 1)]
-            hh = headers + self.column_specific
-        logging.debug("Updated headers: %s", hh)        
+            row_specific = [f"thresh_{i}" for i in range(1, number_of_thresholds + 1)]
+            hh = headers + row_specific
+
+        # PCT/PSTD rows can carry a different number of probability thresholds
+        # from one file/row to the next (e.g. different dates, variables, or
+        # lead times using different numbers of bins). Accumulate the union of
+        # every bin column seen so far instead of overwriting it with just the
+        # most recently processed row -- otherwise a later row with fewer bins
+        # would silently drop higher-numbered bins that appeared earlier.
+        existing = getattr(self, 'column_specific', [])
+        self.column_specific = sorted(set(existing) | set(row_specific),
+                                       key=self._bin_column_sort_key)
+
+        logging.debug("Updated headers: %s", hh)
         return hh
+
+    @staticmethod
+    def _bin_column_sort_key(col):
+        """Sort key that orders thresh_i/oy_i/on_i/thresh_n columns numerically
+        by bin index instead of lexicographically (so thresh_2 sorts before
+        thresh_10, which plain string sorting would get wrong)."""
+        if col == "thresh_n":
+            return (1, float("inf"), 0, col)
+        prefix, sep, idx = col.rpartition("_")
+        if sep and idx.isdigit():
+            rank = {"thresh": 0, "oy": 1, "on": 2}.get(prefix, 3)
+            return (0, int(idx), rank, col)
+        return (2, 0, 0, col)
 
     def filter_by_date(self, df, date_column, start_date, end_date):
         """

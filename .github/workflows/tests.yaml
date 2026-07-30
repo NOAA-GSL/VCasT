@@ -5,33 +5,50 @@ on:
     branches:
       - main
       - develop
-      
+
   workflow_dispatch:
 
 jobs:
   test:
     runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: ['3.10', '3.11', '3.12']
     steps:
       - name: Check out repository (including submodules)
         uses: actions/checkout@v3
         with:
           submodules: true
-          fetch-depth: 0  
-
-      - name: Update submodules to latest main branch
-        run: |
-          git submodule update --init --recursive --remote
+          fetch-depth: 0
 
       - name: Set up Python
         uses: actions/setup-python@v4
         with:
-          python-version: '3.12'
+          python-version: ${{ matrix.python-version }}
+
+      - name: Install system dependencies (eccodes, for pygrib)
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libeccodes0 libeccodes-dev
 
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install .[all]
-          pip install -r requirements.txt
+          pip install ".[all,dev]"
+
+      - name: Verify optional extras actually imported
+        run: |
+          python -c "
+          import vcast.preprocess as p, vcast.processing as pr
+          missing = [n for n, v in [('Preprocessor', p.Preprocessor), ('FileChecker', p.FileChecker),
+                                     ('process_in_parallel', pr.process_in_parallel),
+                                     ('interpolate_to_target_grid', pr.interpolate_to_target_grid),
+                                     ('StatiscalSignificance', pr.StatiscalSignificance)] if v is None]
+          if missing:
+              raise SystemExit(f'These \"processing\" extras failed to import even after pip install \".[all]\": {missing}. '
+                                'Check the warnings logged above for the underlying ImportError.')
+          print('All processing/preprocess extras imported successfully.')
+          "
 
       - name: Run workflow tests
         run: |

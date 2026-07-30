@@ -6,7 +6,7 @@ from colorama import Fore, Style
 
 from vcast.metstat import ReadStat
 from vcast.agg import Aggregation
-from vcast.plot import LinePlot, Reliability, PerformanceDiagram
+from vcast.plot import LinePlot, Reliability, PerformanceDiagram, Roc
 from vcast.io import ConfigLoader
 
 def detect_yaml_config(file_path):
@@ -71,8 +71,8 @@ def handle_conversion(config):
 
             agg = Aggregation(config, df, svars)
             df = agg.run()
-            print("DataFrame shape after aggregation: %s", df.shape)
-            print("Saving aggregated file to %s.", config.output_agg_file)
+            print(f"DataFrame shape after aggregation: {df.shape}")
+            print(f"Saving aggregated file to {config.output_agg_file}.")
             rs.save_dataframe(df, config.output_agg_file)
 
     sys.exit(0)
@@ -90,6 +90,8 @@ def handle_plotting(config):
         plt = Reliability(config)
     elif config.plot_type == "performance_diagram":
         plt = PerformanceDiagram(config)
+    elif config.plot_type == "roc":
+        plt = Roc(config)
     else:
         raise Exception(Fore.RED + f"ERROR: Plot type {config.plot_type} is not supported." + Style.RESET_ALL)
 

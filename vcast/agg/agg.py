@@ -68,16 +68,24 @@ class Aggregation:
             n = len(grp)
             row["count"] = n
 
-            # Compute mean and t-based CI for each metric column
+            # Compute mean and t-based CI for each metric column.
+            # Bin columns (e.g. thresh_i/oy_i/on_i from PCT data) may not be
+            # present for every row in the group -- different dates or
+            # variables can carry a different number of probability bins --
+            # so missing values show up as NaN. Average over only the rows
+            # that actually have that bin instead of letting NaNs collapse
+            # the whole column, and size the CI off that same valid count.
             for col in self.estimate_cols:
-                values = grp[col].to_numpy()
-                mean_val = np.mean(values)
+                values = grp[col].to_numpy(dtype=float)
+                valid = values[~np.isnan(values)]
+                n_valid = len(valid)
+                mean_val = np.mean(valid) if n_valid > 0 else np.nan
                 row[f"{col}"] = mean_val
 
                 if self.ci:
-                    s = np.std(values, ddof=1) if n > 1 else 0.0
-                    t_crit = t.ppf(1 - alpha/2, df=n-1) if n > 1 else np.nan
-                    half_width = t_crit * s / np.sqrt(n) if n > 1 else 0.0
+                    s = np.std(valid, ddof=1) if n_valid > 1 else 0.0
+                    t_crit = t.ppf(1 - alpha/2, df=n_valid-1) if n_valid > 1 else np.nan
+                    half_width = t_crit * s / np.sqrt(n_valid) if n_valid > 1 else 0.0
                     row[f"{col}_bcl"] = mean_val - half_width
                     row[f"{col}_bcu"] = mean_val + half_width
     

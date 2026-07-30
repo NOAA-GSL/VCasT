@@ -18,9 +18,21 @@ Modules:
 from .io import ConfigLoader, OutputFileHandler
 from .preprocess import FileChecker, Preprocessor
 from .processing import process_in_parallel, interpolate_to_target_grid, StatiscalSignificance
-from .metstat import ReadStat
-from .plot import BasePlot, LinePlot, Reliability, PerformanceDiagram
-from .agg import Aggregation
+
+try:
+    from .metstat import ReadStat
+except ImportError:
+    ReadStat = None
+
+try:
+    from .plot import BasePlot, LinePlot, Reliability, PerformanceDiagram
+except ImportError:
+    BasePlot = LinePlot = Reliability = PerformanceDiagram = None
+
+try:
+    from .agg import Aggregation
+except ImportError:
+    Aggregation = None
 
 __all__ = [
     "ConfigLoader",

@@ -12,14 +12,28 @@ Available Classes:
 - Preprocessor: Processes input files and prepares them for analysis.
 """
 
+import logging
+
 try:
     from .file_checker import FileChecker
-except ImportError:
+except ImportError as e:
+    logging.warning(
+        "vcast.preprocess.FileChecker unavailable (%s). Install the "
+        "'preprocess'/'processing'/'all' extras, and make sure the "
+        "eccodes system library pygrib depends on is installed "
+        "(e.g. `apt-get install libeccodes-dev` on Debian/Ubuntu).", e
+    )
     FileChecker = None
 
 try:
     from .preprocess import Preprocessor
-except ImportError:
+except ImportError as e:
+    logging.warning(
+        "vcast.preprocess.Preprocessor unavailable (%s). Install the "
+        "'preprocess'/'processing'/'all' extras, and make sure the "
+        "eccodes system library pygrib depends on is installed "
+        "(e.g. `apt-get install libeccodes-dev` on Debian/Ubuntu).", e
+    )
     Preprocessor = None
 
 __all__ = [

@@ -28,7 +28,7 @@ class ReadStat:
             logging.error("Line type %s not recognized.", config.line_type)
             raise Exception(f"Line type {config.line_type} not recognized.")
         
-        sfiles = sorted(glob.glob(f'{config.input_stat_folder}/*.stat'))
+        sfiles = sorted(glob.glob(f'{config.input_stat_folder}/*.stat') + glob.glob(f'{config.input_stat_folder}/*.txt'))
         logging.info("Found %d stat files in %s.", len(sfiles), config.input_stat_folder)
 
         # Loop through all .stat files
@@ -126,7 +126,11 @@ class ReadStat:
     def all_columns(self, line_type, line_type_columns=cn.LINE_TYPE_COLUMNS):
         # Get the additional columns based on line type, or an empty list if not found
         line_type_columns = line_type_columns.get(line_type.lower(), [])
-        full_cols = cn.FULL_HEADER + line_type_columns
+        if line_type.lower() in ("mode_cts", "mode_obj"):
+            base = cn.MODE_HEADER
+        else:
+            base = cn.FULL_HEADER
+        full_cols = list(base) + list(line_type_columns)   # copy - never mutate constants
         logging.debug("all_columns() for line_type '%s': %s", line_type, full_cols)
         return full_cols
 
@@ -141,18 +145,21 @@ class ReadStat:
         # Get column headers dynamically
         headers = self.all_columns(line_type)
         fheaders = headers
+        is_mode = line_type.lower() in ("mode_cts", "mode_obj")
 
         with open(file_path, "r") as file:
             next(file)  # Skip the first line (header row)
             for line in file:
                 row_data = line.split()  # Split the line into columns
-                if line_type.lower() == "mode_cts":
-                    fheaders = cn.LINE_TYPE_COLUMNS["mode_cts"]
-                    if len(row_data) == len(fheaders):
-                        row_dict = dict(zip(fheaders, row_data[:len(fheaders)]))
-                        matching_rows.append(row_dict)
+                if not row_data or row_data[0].upper() == "VERSION":
+                    continue  # skip blank lines and any embedded header rows
+                if is_mode:
+                    # MODE output has no line_type column; every data row is this type.
+                    if len(row_data) == len(headers):
+                        matching_rows.append(dict(zip(headers, row_data)))
                     else:
-                        logging.warning("Skipping line in %s due to mismatched column count.", file_path)
+                        logging.warning("Skipping line in %s due to mismatched column count (%d != %d).",
+                                        file_path, len(row_data), len(headers))
                 else:
                     # Check if the line contains the specific line type
                     if row_data[headers.index("line_type")].lower() == line_type.lower():

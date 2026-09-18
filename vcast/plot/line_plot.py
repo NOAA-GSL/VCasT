@@ -1,4 +1,5 @@
 import pandas as pd
+import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.dates as mdates
 from .base_plot import BasePlot
@@ -122,6 +123,47 @@ class LinePlot(BasePlot):
                             
                             self.__exceute_line(var, xdata, file, start_dt, end_dt, i + j)
 
+    def _count_series(self):
+        """Return the total number of series that will be drawn.
+
+        This mirrors the index used when calling ``__exceute_line`` so that the
+        dodge offsets stay centred: without ``unique`` grouping each ``vars``
+        entry is one series; with grouping the series index runs up to
+        ``len(vars) + len(unique) - 1``.
+        """
+        n = len(self.config.vars)
+        unique = getattr(self.config, "unique", None)
+        if unique:
+            n = n + len(unique) - 1
+        return n
+
+    def _dodge_offset(self, series_index, x_values):
+        """Horizontal offset for one series so overlapping points/CIs separate.
+
+        When the ``dodge`` config option is truthy each series is shifted along
+        the x-axis by a small amount, symmetric around the true x position. The
+        total spread is ``dodge_width`` (default 0.6) times the typical spacing
+        between x points, so it adapts to both date and ``fcst_lead`` x-axes.
+        Returns ``0.0`` when dodging is disabled or there is a single series.
+        """
+        if not getattr(self.config, "dodge", False):
+            return 0.0
+
+        n_series = self._count_series()
+        if n_series <= 1:
+            return 0.0
+
+        xs = np.asarray(x_values, dtype=float)
+        xs = np.unique(xs[~np.isnan(xs)])
+        if xs.size >= 2:
+            dx = float(np.median(np.diff(xs)))
+        else:
+            dx = 1.0
+
+        width = getattr(self.config, "dodge_width", 0.6) or 0.6
+        step = (width * dx) / (n_series - 1)
+        return (series_index - (n_series - 1) / 2.0) * step
+
     def __exceute_line(self, var, data, file, start_dt, end_dt, i):
 
         # Check that the variable exists in the merged DataFrame.
@@ -163,6 +205,13 @@ class LinePlot(BasePlot):
         if self.config.xlim:
             self.ax.set_xlim(x_values[self.config.xlim[0]], x_values[self.config.xlim[1]])
 
+        # Optionally dodge this series horizontally so overlapping points and
+        # confidence intervals from multiple lines are separated. Ticks and
+        # limits above keep using the true x positions; only the drawn series
+        # (line, markers, CIs and significance markers) are shifted.
+        dodge_offset = self._dodge_offset(i, x_values)
+        x_dodged = np.asarray(x_values, dtype=float) + dodge_offset
+
         ylabel = self.config.labels[i]
         is_valid, color = parse_rgb_string(self.config.line_color[i])
 
@@ -198,7 +247,7 @@ class LinePlot(BasePlot):
                 if self.config.ci_fill_between:
 
                     self.ax.fill_between(
-                        x_values,
+                        x_dodged,
                         data[f"{prefix}_bcl"] * scale,
                         data[f"{prefix}_bcu"] * scale,
                         color=color,
@@ -217,7 +266,7 @@ class LinePlot(BasePlot):
                 yerr = [yerr_lower, yerr_upper]
             
                 self.ax.errorbar(
-                    x_values,
+                    x_dodged,
                     central,
                     yerr=yerr,
                     fmt='none',
@@ -233,16 +282,15 @@ class LinePlot(BasePlot):
                 if "significant" in data.columns:
                     signif = True
                     significant_mask = data["significant"]
-                    
-                    x_values = list(x_values)
+
                     y_values = list(y_values)
-                    
+
                     y_min = self.ax.get_ylim()[0]
                     y_margin = (self.ax.get_ylim()[1] - y_min) * 0.02  # 2% margin
                     y_marker = y_min - y_margin
-                    
-                    # Extract significant x-values using list comprehension
-                    x_sig = [x for x, is_sig in zip(x_values, significant_mask) if is_sig]
+
+                    # Extract significant x-values (dodged to match the series)
+                    x_sig = [x for x, is_sig in zip(x_dodged, significant_mask) if is_sig]
                     
                     # Plot dot markers at the bottom for significant points
                     self.ax.scatter(
@@ -256,7 +304,7 @@ class LinePlot(BasePlot):
                     )
 
         self.ax.plot(
-            x_values, y_values * scale,
+            x_dodged, y_values * scale,
             color=color,
             linestyle=self.config.line_type[i],
             marker=self.config.line_marker[i],

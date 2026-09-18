@@ -87,3 +87,9 @@ xticks: [0,3,6,9,12,15,18,21,24,27,30,33,36]  # Custom x-axis tick marks (for ex
 # ------------------------
 significance: true              # Enable plotting of statistically significant markers/points
 ci: ['rmse','mae']                        # Enable plotting of confidence intervals (CI)
+
+# When true, each series' points and confidence intervals are shifted slightly
+# along the x-axis so that overlapping lines/CIs are separated and readable.
+# The lines and ticks keep their true x positions.
+dodge: false
+dodge_width: 0.6                # Total horizontal spread, as a fraction of the x-step (used only when dodge is true)

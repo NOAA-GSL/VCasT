@@ -72,9 +72,9 @@ class PerformanceDiagram(BasePlot):
             if self.config.unique is not None:
                 if self.config.unique in data.columns:
                     unique_vals = np.unique(data[self.config.unique])
-                    # Use the (i-1)th unique value
+                    # Use the i-th unique value
                     if i < len(unique_vals):
-                        data = data[data[self.config.unique] == unique_vals[i-1]]
+                        data = data[data[self.config.unique] == unique_vals[i]]
                     else:
                         raise IndexError(f"Index {i} out of bounds for unique values in {self.config.unique}.")
     

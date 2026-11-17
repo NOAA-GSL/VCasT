@@ -5,6 +5,12 @@ from vcast.metstat import AVAILABLE_LINE_TYPES
 import logging
 from collections import Counter
 
+# Line types whose number of trailing columns varies per line (probability
+# bins for PCT/PSTD, observation ranks for RHIST).
+DYNAMIC_LINE_TYPES = ("pct", "pstd", "rhist")
+# stat_vars keywords that expand to every dynamic bin/rank column seen.
+ALL_BINS_KEYS = ("all_thresh", "all_ranks")
+
 class ReadStat:
     def __init__(self, config):
         """
@@ -85,8 +91,8 @@ class ReadStat:
 
         add_columns = config.stat_vars
         if hasattr(self, 'column_specific'):
-            if "all_thresh" in config.stat_vars:
-                add_columns = [var for var in config.stat_vars if var != "all_thresh"]
+            if any(k in config.stat_vars for k in ALL_BINS_KEYS):
+                add_columns = [var for var in config.stat_vars if var not in ALL_BINS_KEYS]
                 add_columns = sorted(set(self.column_specific + add_columns),
                                       key=self._bin_column_sort_key)
                 logging.debug("Unique stat vars after combining column_specific: %s", add_columns)
@@ -120,6 +126,10 @@ class ReadStat:
         
         if self.config.line_type.lower() == "pct" and "all_thresh" in config.stat_vars:
             svars = self.column_specific
+
+        if self.config.line_type.lower() == "rhist" and "all_ranks" in config.stat_vars:
+            # keep e.g. "total" next to every rank_i column
+            svars = [v for v in config.stat_vars if v not in ALL_BINS_KEYS] + self.column_specific
 
         return df, add_columns, svars
 
@@ -163,7 +173,7 @@ class ReadStat:
                 else:
                     # Check if the line contains the specific line type
                     if row_data[headers.index("line_type")].lower() == line_type.lower():
-                        if line_type.lower() in ['pct', 'pstd']:
+                        if line_type.lower() in DYNAMIC_LINE_TYPES:
                             fheaders = self.update_headers(headers, row_data, line_type.lower())
                             logging.debug("Updated headers for %s: %s", line_type, fheaders)
                         if len(row_data) != len(fheaders):
@@ -183,7 +193,7 @@ class ReadStat:
         # any higher-numbered bins seen in other rows. Use the accumulated
         # union (self.column_specific, built up across every row processed so
         # far) instead, so every bin survives regardless of processing order.
-        if line_type.lower() in ['pct', 'pstd'] and getattr(self, 'column_specific', None):
+        if line_type.lower() in DYNAMIC_LINE_TYPES and getattr(self, 'column_specific', None):
             fheaders = self.all_columns(line_type) + self.column_specific
 
         df = pd.DataFrame(matching_rows, columns=fheaders)
@@ -201,6 +211,10 @@ class ReadStat:
             hh = headers + row_specific
         elif line_type == 'pstd':
             row_specific = [f"thresh_{i}" for i in range(1, number_of_thresholds + 1)]
+            hh = headers + row_specific
+        elif line_type == 'rhist':
+            # RHIST: TOTAL, N_RANK, then one count per rank (N_RANK = n_ens + 1)
+            row_specific = [f"rank_{i}" for i in range(1, number_of_thresholds + 1)]
             hh = headers + row_specific
 
         # PCT/PSTD rows can carry a different number of probability thresholds

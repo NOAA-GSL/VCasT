@@ -4,7 +4,8 @@ AVAILABLE_VARS = ["rmse", "bias", "quantiles", "mae", "gss", "fbias", "pod", "fa
 AVAILABLE_LINE_TYPES = [
             "mode_cts", "mode_obj", "fho", "ctc", "cts", "cnt", "mctc", "mpr", "sl1l2", "sal1l2", 
             "vl1l2", "vcnt", "pct", "pstd", "pjc", "prc", "eclv", "sl1l2", 
-            "sal1l2", "vl1l2", "val1l2", "vcnt", "mpr", "seeps_mpr", "seeps", "ecnt", "nbrcnt"
+            "sal1l2", "vl1l2", "val1l2", "vcnt", "mpr", "seeps_mpr", "seeps", "ecnt", "nbrcnt",
+            "rhist"
         ]
 
 FULL_HEADER = [ 
@@ -174,6 +175,7 @@ LINE_TYPE_COLUMNS = {
              "hss_ec", "hss_ec_bcl", "hss_ec_bcu",
              "ec_value"],
     "pct": ["total", "n_thresh"], # thresholds are added dynamically
+    "rhist": ["total", "n_rank"], # rank_1 ... rank_<n_rank> are added dynamically
     "pstd": ["total", "n_thresh",
              "baser", "baser_ncl", "baser_ncu",
              "reliability", "resolution", "uncertainty",

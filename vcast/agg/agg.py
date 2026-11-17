@@ -23,6 +23,15 @@ class Aggregation:
         self.ci = False 
         if hasattr(config,"ci"):
             self.ci = config.ci
+
+        # How each group is reduced: "mean" (default; per-row estimates such as
+        # RMSE) or "sum" (counts, e.g. RHIST rank_i / total, which must be added
+        # up rather than averaged). RHIST defaults to "sum".
+        line_type = str(getattr(config, "line_type", "") or "").lower()
+        method = getattr(config, "agg_method", None) or ("sum" if line_type == "rhist" else "mean")
+        if method not in ("mean", "sum"):
+            raise ValueError(f"agg_method must be 'mean' or 'sum', got {method!r}")
+        self.method = method
     
     def get_df(self,input_file):
         return pd.read_csv(input_file,sep="\t")
@@ -79,6 +88,12 @@ class Aggregation:
                 values = grp[col].to_numpy(dtype=float)
                 valid = values[~np.isnan(values)]
                 n_valid = len(valid)
+
+                if self.method == "sum":
+                    # counts: plain total over the group, no CI
+                    row[f"{col}"] = np.sum(valid) if n_valid > 0 else np.nan
+                    continue
+
                 mean_val = np.mean(valid) if n_valid > 0 else np.nan
                 row[f"{col}"] = mean_val
 

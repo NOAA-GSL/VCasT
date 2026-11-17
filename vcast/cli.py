@@ -6,7 +6,7 @@ from colorama import Fore, Style
 
 from vcast.metstat import ReadStat
 from vcast.agg import Aggregation
-from vcast.plot import LinePlot, Reliability, PerformanceDiagram, Roc
+from vcast.plot import LinePlot, Reliability, PerformanceDiagram, Roc, RankHistogram
 from vcast.io import ConfigLoader
 
 def detect_yaml_config(file_path):
@@ -92,6 +92,8 @@ def handle_plotting(config):
         plt = PerformanceDiagram(config)
     elif config.plot_type == "roc":
         plt = Roc(config)
+    elif config.plot_type == "rank_histogram":
+        plt = RankHistogram(config)
     else:
         raise Exception(Fore.RED + f"ERROR: Plot type {config.plot_type} is not supported." + Style.RESET_ALL)
 

@@ -4,8 +4,49 @@ from .base_plot import BasePlot
 import numpy as np
 
 class PerformanceDiagram(BasePlot):
+    """Performance diagram (POD vs. success ratio with CSI and frequency-bias lines).
+
+    Each ``vars`` entry is one file and one series. Two input kinds are accepted:
+
+    * CTS-style files with ``pody`` and ``far`` (or ``sr``) columns: one point per
+      row, joined in file order (the original behaviour).
+    * PCT files (``thresh_i``/``oy_i``/``on_i`` columns, e.g. an aggregated
+      ``line_type: pct`` table): the counts of all rows are summed and one point is
+      drawn per probability threshold p_k, treating "forecast yes" as
+      probability >= p_k::
+
+          hits(k) = sum(oy_i for i >= k),  false alarms(k) = sum(on_i for i >= k)
+          POD(k)  = hits(k) / sum(oy)
+          SR(k)   = hits(k) / (hits(k) + false alarms(k))
+
+      The lowest edge (p = 0, always yes) is skipped. Set ``annotate: true`` to
+      label each point with its probability threshold.
+    """
+
     def __init__(self, config):
         super().__init__(config)
+
+    def _pct_points(self, data):
+        """(SR, POD, thresholds) from the summed PCT counts of all rows in `data`."""
+        oy_cols = self.bin_columns(data.columns, "oy_")
+        on_cols = self.bin_columns(data.columns, "on_")
+        th_cols = self.bin_columns(data.columns, "thresh_")
+        idx = sorted(set(int(c[3:]) for c in oy_cols) & set(int(c[3:]) for c in on_cols)
+                     & set(int(c[7:]) for c in th_cols))
+        if not idx:
+            raise Exception("No matching 'thresh_'/'oy_'/'on_' columns -- PCT input expected.")
+        oy = np.nansum(data[[f"oy_{k}" for k in idx]].to_numpy(dtype=float), axis=0)
+        on = np.nansum(data[[f"on_{k}" for k in idx]].to_numpy(dtype=float), axis=0)
+        thresh = data[[f"thresh_{k}" for k in idx]].iloc[0].to_numpy(dtype=float)
+        if oy.sum() == 0:
+            raise Exception("Cannot build performance diagram: no observed events in the PCT counts.")
+        sr, pod, th = [], [], []
+        for k in range(1, len(idx)):              # skip the p = 0 edge (always "yes")
+            hits, fa = oy[k:].sum(), on[k:].sum()
+            pod.append(hits / oy.sum())
+            sr.append(hits / (hits + fa) if hits + fa > 0 else np.nan)
+            th.append(thresh[k])
+        return np.array(sr), np.array(pod), np.array(th)
 
     def setup_plot(self):
         """
@@ -78,6 +119,23 @@ class PerformanceDiagram(BasePlot):
                     else:
                         raise IndexError(f"Index {i} out of bounds for unique values in {self.config.unique}.")
     
+            if "pody" not in data.columns and self.bin_columns(data.columns, "oy_"):
+                sr, pod, th = self._pct_points(data)
+                self.ax.plot(
+                    sr, pod,
+                    color=self.config.line_color[i],
+                    marker=self.config.line_marker[i],
+                    linestyle=self.config.line_type[i],
+                    linewidth=self.config.line_width[i],
+                    label=self.config.labels[i]
+                )
+                if getattr(self.config, "annotate", False):
+                    for x, y, t in zip(sr, pod, th):
+                        if np.isfinite(x) and np.isfinite(y):
+                            self.ax.annotate(f"{t:g}", (x, y), textcoords="offset points", xytext=(4, 3),
+                                             fontsize=8, color=self.config.line_color[i])
+                continue
+
             if "sr" not in data.columns:
                 data["sr"] = 1 - data["far"]
             

@@ -39,6 +39,14 @@ class BasePlot:
                 self.ax.legend(title=self.config.legend_title, fontsize='medium', shadow=True)
 
 
+        # Optional `font_scale` (e.g. 1.5 for posters): enlarge every text element
+        # (title, axis labels, tick labels, legend, annotations) by that factor.
+        scale = float(getattr(self.config, "font_scale", 1) or 1)
+        if scale != 1:
+            import matplotlib.text as mtext
+            for t in plt.gcf().findobj(mtext.Text):
+                t.set_fontsize(t.get_fontsize() * scale)
+
         plt.savefig(self.config.output_filename, bbox_inches='tight')
         plt.close()
         logging.info(f"Plot saved to {self.config.output_filename}")

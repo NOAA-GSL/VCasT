@@ -204,6 +204,11 @@ class LinePlot(BasePlot):
         # Set x-axis limits if provided.
         if self.config.xlim:
             self.ax.set_xlim(x_values[self.config.xlim[0]], x_values[self.config.xlim[1]])
+        # Ticks / limits in axis units (e.g. lead hours), independent of which rows exist.
+        if getattr(self.config, "xtick_values", None):
+            self.ax.set_xticks(self.config.xtick_values)
+        if getattr(self.config, "xlim_values", None):
+            self.ax.set_xlim(*self.config.xlim_values)
 
         # Optionally dodge this series horizontally so overlapping points and
         # confidence intervals from multiple lines are separated. Ticks and

@@ -66,8 +66,12 @@ def handle_conversion(config):
         if config.aggregate:
             
             if config.line_type.lower() == "ecnt" and "ratio" in add_columns:
-                    df['ratio'] = df['spread_plus_oerr'] / df['rmse']
-                    print("Calculated 'ratio' as spread_plus_oerr / rmse.")
+                    if "spread_plus_oerr" in df.columns:
+                        df['ratio'] = df['spread_plus_oerr'] / df['rmse']
+                        print("Calculated 'ratio' as spread_plus_oerr / rmse.")
+                    elif "spread" in df.columns:
+                        df['ratio'] = df['spread'] / df['rmse']
+                        print("Calculated 'ratio' as spread / rmse.")
 
             agg = Aggregation(config, df, svars)
             df = agg.run()
